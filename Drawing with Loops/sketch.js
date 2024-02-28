@@ -6,25 +6,71 @@
 let xPos, yPos;
 
 function setup() {
-  createCanvas(600, 600);
+  createCanvas(200, 200);
   ellipseMode(CENTER);
-  xPos = [width*0.05, width*0.05, width*0.95, width*0.95]
-  yPos = [width*0.05, width*0.95, width*0.05, width*0.95]
+  xPos = [];
+  yPos = [];
+  borderCircles();
+  //initWithLoops();
 }
 
 function draw() {
   background(220);
-  cornersAndMouse();
+  drawTriangles();
+  drawCircles();
+  noLoop();
 }
 
-function cornersAndMouse(){
+function borderCircles(){
+  for (let x = 0; x < width; x += 50){
+    xPos.push(x);
+    yPos.push(0);
+  }
+  for (let y = 0; y < height; y += 50){
+    yPos.push(y);
+    xPos.push(width);
+  }
+  for (let x = width; x > 0; x -= 50){
+    xPos.push(x);
+    yPos.push(height);
+  }
+  for (let y = height; y > 0; y -= 50){
+    yPos.push(y);
+    xPos.push(0);
+  }
+  print(xPos);
+  print(yPos);
+}
+
+function drawTriangles(){
+  fill(255, 0, 0);
+  print(xPos);
+  print(yPos);
+  for (i in xPos){
+    if (i < xPos.length - 1){
+      triangle(xPos[i], yPos[i], xPos[i+1], yPos[i+1], mouseX, mouseY)
+    }
+    else {triangle(xPos[i], yPos[i], xPos[i+1], yPos[i+1], mouseX, mouseY)}
+  }
+}
+
+function initWithLoops(){
+  // lay down initial circles with loops
+  for (let x = 10; x < width; x += 20){
+    xPos.push(x);
+    yPos.push(height/2);
+  }
+}
+
+function drawCircles(){
   // draw some circles near each of the four corners and connect some lines from there to the mouse position
-  fill(255);
+  fill(0);
   for (i in xPos){
     circle(xPos[i], yPos[i], 20);
     line(xPos[i], yPos[i], mouseX, mouseY);
   }
-  circle(mouseX, mouseY, 20)
+  fill(255);
+  circle(mouseX, mouseY, 10)
 }
 
 function mousePressed(){
