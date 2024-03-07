@@ -3,26 +3,43 @@
 // March 1, 2024
 // Creating a grid of semi-randomly colored squares
 
-let s, n, R, G, B;
+let s = 20; 
+let n, R, G, B;
 
 function setup() {
   createCanvas(600, 600);
   rectMode(CENTER);
-  s = 20;
-  n = 10;
-  document.addEventListener("contextmenu", event => event.preventDefault())
+  document.addEventListener("contextmenu", event => event.preventDefault());
 }
 
 function mousePressed(){
-  background(220);
+  if (mouseButton === LEFT) {s -= 4;}
+  else if (mouseButton === RIGHT) {s += 4;}
+  drawGrid();
+}
+
+function keyPressed(){drawGrid();}
+
+function randomColor(){
   R = random(50,255);
   G = random(50,255);
   B = random(50,255);
-  
-  if (mouseButton === LEFT) {s -= 4;}
-  else if (mouseButton === RIGHT) {s += 4;}
+  return [R,G,B];
+}
 
-  //let squares = pow(((width - width%s) / s),2);
+function drawGrid(){
+  background(220);
+  let total1 = 0;
+  let total2 = 0;
+  
+  while (abs(total2 - total1) < 100){
+    square1 = randomColor();
+    square2 = randomColor();
+    total1 = square1[0] + square1[1] + square1[2];
+    total2 = square2[0] + square2[1] + square2[2];
+  }
+  
+  n = (width/((width - width%s) / s))/2;
   
   for (let x = s/2; x < width - s/2; x+=s){
     for (let y = s/2; y < height - s/2; y+=s){
@@ -36,8 +53,8 @@ function mousePressed(){
       if (G > 255){G=255;}
       if (B > 255){B=255;}
       
-      fill(R,G,B)
-      square(x, y, s)
+      fill(R,G,B);
+      square(x, y, s);
     }
   }
 }
