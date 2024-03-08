@@ -40,6 +40,7 @@ function drawGrid(){
   }
   
   n = (width/((width - width%s) / s))/2;
+  print(n);
   
   for (let x = s/2; x < width - s/2; x+=s){
     for (let y = s/2; y < height - s/2; y+=s){
