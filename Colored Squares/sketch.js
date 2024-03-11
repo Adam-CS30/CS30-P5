@@ -7,7 +7,7 @@ let s = 20;
 let n, R, G, B;
 
 function setup() {
-  createCanvas(600, 600);
+  createCanvas(800, 800);
   rectMode(CENTER);
   document.addEventListener("contextmenu", event => event.preventDefault());
 }
@@ -18,29 +18,18 @@ function mousePressed(){
   drawGrid();
 }
 
+// Draws a new grid with the same size everytime a key is pressed.
 function keyPressed(){drawGrid();}
-
-function randomColor(){
-  R = random(50,255);
-  G = random(50,255);
-  B = random(50,255);
-  return [R,G,B];
-}
 
 function drawGrid(){
   background(220);
-  let total1 = 0;
-  let total2 = 0;
+  // Randomizes initial color
+  R = random(50,255);
+  G = random(50,255);
+  B = random(50,255);
   
-  while (abs(total2 - total1) < 100){
-    square1 = randomColor();
-    square2 = randomColor();
-    total1 = square1[0] + square1[1] + square1[2];
-    total2 = square2[0] + square2[1] + square2[2];
-  }
-  
+  // "n" is the furthest each square's RGB values can be from the previous square.
   n = (width/((width - width%s) / s))/2;
-  print(n);
   
   for (let x = s/2; x < width - s/2; x+=s){
     for (let y = s/2; y < height - s/2; y+=s){
