@@ -5,26 +5,30 @@
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
 
-let t = 0;
-let w = 20;
+let w = 10;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  rectMode(CENTER);
-  background(220);
-  drawRects();
+  rectMode(CORNERS);
 }
 
 function draw() {
-  t += 0.1;
+  background(220);
+  drawRange(0);
 }
 
-function drawRects(){
+function keyPressed(){
+  if (keyCode === LEFT_ARROW){
+    w--;
+    if (w<1){w=1;}}
+  else if (keyCode === RIGHT_ARROW){w++;}
+}
+
+function drawRange(t){
   fill(0);
-  //let h = 10;
-  for (let x = w/2; x < width; x+=w){
-    let h = random(30,600)
-    rect(x,height/2,w,h);
-    //h += 5;
+  for (let x = 0; x < width; x+=w){
+    let h = map(noise(t), 0, 1, height*0.8, height*0.2);
+    rect(x, height, x+w, height-h);
+    t += 0.01;
   }
 }
