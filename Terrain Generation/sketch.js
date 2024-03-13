@@ -10,25 +10,45 @@ let w = 10;
 function setup() {
   createCanvas(windowWidth, windowHeight);
   rectMode(CORNERS);
+  strokeWeight(0);
 }
 
 function draw() {
   background(220);
-  drawRange(0);
+  generateTerrain();
 }
 
 function keyPressed(){
-  if (keyCode === LEFT_ARROW){
-    w--;
-    if (w<1){w=1;}}
-  else if (keyCode === RIGHT_ARROW){w++;}
+  if (keyCode === LEFT_ARROW && w !== 1){w--;}
+  else if (keyCode === RIGHT_ARROW && w !== 50){w++;}
 }
 
-function drawRange(t){
+function generateTerrain(){
   fill(0);
+  let t = 0;
+  let peakY = height;
+  let peakX;
+
   for (let x = 0; x < width; x+=w){
-    let h = map(noise(t), 0, 1, height*0.8, height*0.2);
-    rect(x, height, x+w, height-h);
+    let y = height - map(noise(t), 0, 1, height*0.8, height*0.2);
+    rect(x, height, x+w, y);
+
+    if (y < peakY){
+      peakX = x + w/2;
+      peakY = y;
+    }
+
     t += 0.01;
   }
+
+  drawFlag(peakX, peakY);
+}
+
+function drawFlag(x, y){
+  let tall = 25;
+  strokeWeight(1);
+  fill(150);
+  line(x,y,x,y-tall);
+  triangle(x, y-tall, x, y-tall/2, x+12, y-(tall*3/4))
+  strokeWeight(0);
 }
