@@ -45,10 +45,10 @@ function generateTerrain(){
 }
 
 function drawFlag(x, y){
-  let tall = 25;
+  let tall = 30;
   strokeWeight(1);
   fill(150);
   line(x,y,x,y-tall);
-  triangle(x, y-tall, x, y-tall/2, x+12, y-(tall*3/4))
+  triangle(x, y-tall, x, y-tall/1.8, x+tall/3, y-(tall*2/3.6))
   strokeWeight(0);
 }
