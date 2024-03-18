@@ -42,15 +42,13 @@ function generateTerrain(){
     if (y < peakY){
       peakX = x + w/2;
       peakY = y;
-      print(peakX);
     }
   }
 
   for (y of heights){total_height += y;}
-  //if (peakX > width){print(peakX)}
   avg_height = total_height/heights.length;
 
- if (peakX < width){peakX-=w/2}
+ if (peakX > width){peakX-=w/2}
   drawBand(avg_height);
   drawFlag(peakX, peakY);
   time -= time_added*0.99
