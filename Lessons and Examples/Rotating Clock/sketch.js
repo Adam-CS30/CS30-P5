@@ -19,7 +19,6 @@ function draw() {
   secondHand();
   minuteHand();
   hourHand();
-  print(frameCount)
 }
 
 function clockFace(){
