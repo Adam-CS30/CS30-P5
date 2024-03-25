@@ -27,7 +27,12 @@ function draw() {
 function snake(){
   fill(210);
   for (let i = 0; i < segments; i++){
-    square(x[i],y[i],size-2);
+    if (i === 0){
+      fill(255,0,0);
+      square(x[i],y[i],size-2);
+    }
+    else {square(x[i],y[i],size-2);}
+    fill(210)
   }
 }
 
@@ -39,8 +44,8 @@ function updateBody(){
 }
 
 function keyPressed(){
-  if (keyCode === LEFT_ARROW && !dead){directionX = -20; directionY = 0;}
-  else if (keyCode === RIGHT_ARROW && !dead){directionX = 20; directionY = 0;}
-  else if (keyCode === UP_ARROW && !dead){directionX = 0; directionY = -20;}
-  else if (keyCode === DOWN_ARROW && !dead){directionX = 0; directionY = 20;}
+  if (keyCode === LEFT_ARROW && directionX === 0){directionX = -20; directionY = 0;}
+  else if (keyCode === RIGHT_ARROW && directionX === 0){directionX = 20; directionY = 0;}
+  else if (keyCode === UP_ARROW && directionY === 0){directionX = 0; directionY = -20;}
+  else if (keyCode === DOWN_ARROW && directionY === 0){directionX = 0; directionY = 20;}
 }
