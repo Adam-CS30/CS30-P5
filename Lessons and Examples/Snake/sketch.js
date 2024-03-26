@@ -3,13 +3,14 @@
 // March 22, 2024
 // Replicate the original snake game
 
-let x = [], y = [], speed = 1, segments = 3, directionX = 20, directionY = 0, dead = false, size = 20;
+let x = [], y = [], speed = 1, segments = 5, directionX = 20, directionY = 0, dead = false, size = 20;
 
 function setup() {
   createCanvas(600, 600);
   noStroke();
   rectMode(CENTER);
   frameRate(speed);
+  for (let i = 0; i < segments; i++)
   x.push(width/2 - size);
   x.push(width/2);
   x.push(width/2 + size);
@@ -27,7 +28,7 @@ function draw() {
 function snake(){
   fill(210);
   for (let i = 0; i < segments; i++){
-    if (i === 0){
+    if (i === x.length-1){
       fill(255,0,0);
       square(x[i],y[i],size-2);
     }
