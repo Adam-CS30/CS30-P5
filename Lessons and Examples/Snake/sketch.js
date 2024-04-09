@@ -3,7 +3,7 @@
 // March 22, 2024
 // Replicate the original snake game
 
-let x = [], y = [], speed = 1, segments = 5, directionX = 20, directionY = 0, tempDirectionX = 20, tempDirectionY = 0, dead = false, size = 20;
+let x = [], y = [], speed = 1, segments = 5, heading = 0, tempDirectionX = 20, tempDirectionY = 0, dead = false, size = 20;
 
 function setup() {
   createCanvas(600, 600);
@@ -26,8 +26,12 @@ function draw() {
 
 function snake(){
   fill(210);
+  // The snake is drawn from tail to head
   for (let i = 0; i < segments; i++){
-    if (i === x.length-1){
+    if (i === 0){
+      triangle(x[i]+1, y)
+    }
+    else if (i === x.length-1){
       fill(255,0,0);
       square(x[i]+1,y[i]+1,size-2);
     }
@@ -37,17 +41,24 @@ function snake(){
 }
 
 function updateBody(){
-  directionX = tempDirectionX;
-  directionY = tempDirectionY;
-  x.push(x[segments-1] + directionX);
-  y.push(y[segments-1]  + directionY);
+  if (tempDirectionX == 0){
+    if (tempDirectionY == 20){heading = 0}
+    else{heading = 2}
+  }
+  else{
+    if (tempDirectionX == 20){heading = 1}
+    else{heading = 3}
+  }
+
+  x.push(x[segments-1] + tempDirectionX);
+  y.push(y[segments-1]  + tempDirectionY);
   x.shift()
   y.shift()
 }
 
 function keyPressed(){
-  if (keyCode === LEFT_ARROW && (directionX === 0 || tempDirectionX === 0)){tempDirectionX = -20; tempDirectionY = 0;}
-  else if (keyCode === RIGHT_ARROW && (directionX === 0 || tempDirectionX === 0)){tempDirectionX = 20; tempDirectionY = 0;}
-  else if (keyCode === UP_ARROW && (directionY === 0 || tempDirectionY === 0)){tempDirectionX = 0; tempDirectionY = -20;}
-  else if (keyCode === DOWN_ARROW && directionY === 0){tempDirectionX = 0; tempDirectionY = 20;}
+  if (keyCode === LEFT_ARROW && (tempDirectionX !== -20 && heading !== 1)){tempDirectionX = -20; tempDirectionY = 0;}
+  else if (keyCode === RIGHT_ARROW && (tempDirectionX !== 20 && heading !== 3)){tempDirectionX = 20; tempDirectionY = 0;}
+  else if (keyCode === UP_ARROW && (tempDirectionY !== -20 && heading !== 2)){tempDirectionX = 0; tempDirectionY = -20;}
+  else if (keyCode === DOWN_ARROW && (tempDirectionY !== 20 && heading !== 0)){tempDirectionX = 0; tempDirectionY = 20;}
 }
