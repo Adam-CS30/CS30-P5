@@ -6,7 +6,7 @@
 // ------------------------------------------------------------------------- //
 // You don't need to edit this section...
 
-let enterprise, bullet;
+let enterprise, bullets = [];
 let shipImage, bulletImage;
 
 function preload() {
@@ -16,7 +16,6 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  bullet = new Bullet(this.x, this.y-this.size/2, bulletImage);
   enterprise = new Ship(width/2, height/2, shipImage);
 }
 
@@ -36,33 +35,35 @@ function keyPressed() {
 
 class Ship {
   constructor(x, y, theImage) {
-    this.x = x; this.y = y; this.size = 30; this.ship = theImage;
+    this.x = x; this.y = y; this.size = 50; this.shipImg = theImage;
   }
 
   update() {
     // move ship -- you might want to use the keyIsDown() function here
-        if (keyIsDown(LEFT_ARROW)){this.x-=3}
-        if (keyIsDown(RIGHT_ARROW)){this.x+=3}
-        if (keyIsDown(UP_ARROW)){this.y-=3}
-        if (keyIsDown(DOWN_ARROW)){this.y+=3}
+    if (keyIsDown(LEFT_ARROW)){this.x-=3}
+    if (keyIsDown(RIGHT_ARROW)){this.x+=3}
+    if (keyIsDown(UP_ARROW)){this.y-=3}
+    if (keyIsDown(DOWN_ARROW)){this.y+=3}
     
     // if doing extra for experts, show bullet(s)
-    
+    for (let bullet of bullets){
+      bullet.update();
+      bullet.display();
+    }
   }
 
   display() {
     // show the ship
-    image(this.ship, this.x, this.y, this.size, this.size);
+    image(this.shipImg, this.x, this.y, this.size, this.size);
   }
 
   handleKeyPress() {
     // you only need to use this if you are doing the extra for experts...
     // if you are, you should make a bullet if the space key was pressed
     if (keyPressed){
-      if (keyCode == LEFT_ARROW){
-        bullet = new Bullet(this.x, this.y-this.size/2, bulletImage);
-        bullet.update();
-        bullet.display();
+      print(key)
+      if (key == ' '){
+        bullets.push(new Bullet(this.x+10, this.y-this.size/2, bulletImage));
       }
     }
   }
@@ -77,23 +78,24 @@ class Ship {
 //    when the bullets should be removed from the array...
 
 class Bullet {
-  constructor(x, y, dx, dy, theImage) {
+  constructor(x, y) {
     // define the variables needed for the bullet here
-    this.x = x; this.y = y; this.size = 30; this.bulletImg = theImage;
+    this.x = x; this.y = y; this.size = 30;
   }
 
   update() {
     // what does the bullet need to do during each frame? how do we know if it is off screen?
-    if (this.y < 0){}
+    this.y -= 10
   }
 
   display() {
     // show the bullet
-    image(this.bulletImg, this.x, this.y, this.size, this.size);
+    image(bulletImage, this.x, this.y, this.size, this.size);
   }
 
   isOnScreen() {
     // check if the bullet is still on the screen
+    if (this.y < -5){bullets = bullets.shift()}
   }
 }
 
