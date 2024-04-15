@@ -29,7 +29,7 @@ function mouseClicked(){
 
 class MovingPoint{
   
-  constructor(x, y){ //gets called once each time we make an obj
+  constructor(x, y){ //gets called once each time we make an object
     //related to position/rendering
     this.x = x;   this.y = y;   this.size = 20;
     this.c = color(random(255),random(255),random(255));
