@@ -8,8 +8,8 @@ let westbound = [], eastbound = [];
 function setup() {
   createCanvas(windowWidth, windowHeight);
   rectMode(CENTER);
-  for (let i = 0; i < 20; i++){eastbound.push(new Vehicle(0, random(height*0.52, height*0.63), random(5, 10)));}
-  for (let i = 0; i < 20; i++){westbound.push(new Vehicle(width, random(height*0.37, height*0.48), random(-5, -10)));}
+  for (let i = 0; i < 20; i++){eastbound.push(new Vehicle(0, random(height*0.52, height*0.63)));}
+  for (let i = 0; i < 20; i++){westbound.push(new Vehicle(width, random(height*0.37, height*0.48)));}
 }
 
 function draw() {
@@ -27,23 +27,36 @@ function drawRoad(){
 }
 
 class Vehicle{
-  constructor(x, y, speed){
-    this.type = 0; this.x = x; this.y = y; this.xSpeed = speed; this.color = color(random(255),random(255),random(255))
+  constructor(x, y){
+    this.type = int(random(2)); this.x = x; this.y = y; this.xSpeed = 5; this.color = color(random(255),random(255),random(255))
   }
 
   display(){
     fill(this.color);
+    if (this.type){
+      rect(this.x, this.y, 40, 30);
+      rect(this.x+25, this.y, 10, 30);
+    }
+
+    else{
     rect(this.x+25, this.y, 50, 20);
     fill(255);
-    rect(this.x+8, this.y-12, 10, 3)
-    rect(this.x+8, this.y+12, 10, 3)
-    rect(this.x+42, this.y-12, 10, 3)
-    rect(this.x+42, this.y+12, 10, 3)
+    rect(this.x+8, this.y-12, 10, 3);
+    rect(this.x+8, this.y+12, 10, 3);
+    rect(this.x+42, this.y-12, 10, 3);
+    rect(this.x+42, this.y+12, 10, 3);
+    }
   }
-  move(){this.x += this.xSpeed;}
-  speedUp(){this.xSpeed++;}
-  speedDown(){this.xSpeed--;}
-  changeColor(){this.color = color(random(255),random(255),random(255))}
+
+  move(){
+    if (this.y < height/2){this.x -= this.xSpeed;}
+    else{this.x += this.xSpeed;}
+  }
+
+  speedUp(){if (this.xSpeed < 15){this.xSpeed++};}
+  speedDown(){if (this.xSpeed > 0){this.xSpeed--;}}
+  changeColor(){this.color = color(random(255),random(255),random(255));}
+
   action(){
     let r = random();
     this.move();
