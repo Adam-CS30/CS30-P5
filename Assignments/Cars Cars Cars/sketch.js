@@ -28,29 +28,31 @@ function drawRoad(){
 
 class Vehicle{
   constructor(x, y){
-    this.type = int(random(2)); this.x = x; this.y = y; this.xSpeed = 5; this.color = color(random(255),random(255),random(255))
+    this.type = int(random(2)); this.x = width-20; this.y = y; this.xSpeed = 1; this.color = color(random(255),random(255),random(255))
+    if (this.y < height/2){this.reflect = -1}
+    else {this.reflect = 1}
   }
 
   display(){
     fill(this.color);
     if (this.type){
-      rect(this.x, this.y, 40, 30);
-      rect(this.x+25, this.y, 10, 30);
+      rect(this.x+20*this.reflect, this.y, 40, 30);
+      rect(this.x+45*this.reflect, this.y, 10, 30);
     }
 
     else{
-    rect(this.x+25, this.y, 50, 20);
-    fill(255);
-    rect(this.x+8, this.y-12, 10, 3);
-    rect(this.x+8, this.y+12, 10, 3);
-    rect(this.x+42, this.y-12, 10, 3);
-    rect(this.x+42, this.y+12, 10, 3);
+      rect(this.x+25*this.reflect, this.y, 50, 20);
+      fill(255);
+      rect(this.x+8*this.reflect, this.y-12, 10, 3);
+      rect(this.x+8*this.reflect, this.y+12, 10, 3);
+      rect(this.x+42*this.reflect, this.y-12, 10, 3);
+      rect(this.x+42*this.reflect, this.y+12, 10, 3);
     }
   }
 
   move(){
-    if (this.y < height/2){this.x -= this.xSpeed;}
-    else{this.x += this.xSpeed;}
+    this.x += this.xSpeed*this.reflect;
+    if (this.x > width){this.x=0}
   }
 
   speedUp(){if (this.xSpeed < 15){this.xSpeed++};}
@@ -60,8 +62,8 @@ class Vehicle{
   action(){
     let r = random();
     this.move();
-    if (r < 0.01){this.speedUp();}
-    else if (r < 0.02){this.speedDown();}
+    //if (r < 0.01){this.speedUp();}
+    //else if (r < 0.02){this.speedDown();}
     if (random() < 0.01){this.changeColor();}
     this.display();
   }
