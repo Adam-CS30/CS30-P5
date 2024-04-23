@@ -1,6 +1,6 @@
 // Cars Cars Cars
 // Adam Abouelela
-// April 15, 2024
+// April 23, 2024
 
 // A two way road for vehicles to travel on.
 // Vehicles can be stopped by turning the traffic light red using the spacebar.
@@ -11,7 +11,7 @@ let westbound = [], eastbound = [], trafficLight;
 
 function setup() {
   // Works best on 900+ height.
-  createCanvas(windowWidth, 900);
+  createCanvas(windowWidth, windowHeight);
   rectMode(CENTER);
   ellipseMode(CENTER);
 
@@ -149,21 +149,21 @@ class TrafficLight{
   display(){
     // Draws the grey rectangle of the traffic light.
     fill(60);
-    rect(width/2, height/2-225, 400, 120);
+    rect(width/2, height*0.35-80, 400, 120);
 
     // Draws the red light (on when 'light' is set to 1).
     if (this.light === 0){fill(100,20,20)}
     else{fill(255,50,50)}
-    circle(width/2 - 125, height/2-225, 100);
+    circle(width/2 - 125, height*0.35-80, 100);
 
     // Draws the amber light (this never turns on).
     fill(100, 50, 0);
-    circle(width/2, height/2-225, 100);
+    circle(width/2, height*0.35-80, 100);
 
     // Draws the green light (on when 'light' is set to 0).
     if (this.light === 1){fill(20,100,20)}
     else{fill(50,200,50)}
-    circle(width/2 + 125, height/2-225, 100);
+    circle(width/2 + 125, height*0.35-80, 100);
   }
 
   // Checks and corrects the state of 'light' and then draws the traffic light.
