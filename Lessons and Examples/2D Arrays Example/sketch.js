@@ -3,7 +3,7 @@
 // April 23, 2024
 
 const SQUARE_SIZE = 50; const NUM_ROWS = 6; const NUM_COLS = 6;
-let grid = [], win = false;
+let grid = [], win = false, n = 0;
 
 function setup() {
   createCanvas(NUM_COLS * SQUARE_SIZE, NUM_ROWS * SQUARE_SIZE);
@@ -17,7 +17,10 @@ function setup() {
 
 function draw() {
   background(220);
+  noStroke();
   drawGrid();
+  stroke(0);
+  if (win){winWhite(); drawWin(grid[0][0]);}
 }
 
 function drawGrid(){
@@ -28,6 +31,25 @@ function drawGrid(){
       square(x*SQUARE_SIZE, y*SQUARE_SIZE, SQUARE_SIZE);
     }
   }
+}
+
+function drawWin(tileColor){
+  if (n <= width/2){
+    for (let y = 0; y <= NUM_ROWS; y++){
+      for(let x = 0; x <= NUM_COLS; x++){line(x*SQUARE_SIZE, 0+n, x*SQUARE_SIZE, height-n);}
+      line(0+n, y*SQUARE_SIZE, width-n, y*SQUARE_SIZE);
+    }
+    n += 3;
+  }
+
+  else{
+  if (tileColor === 255){fill(0);}
+  else{fill(255);}
+  
+  textSize(50);
+  textAlign(CENTER);
+  text('YOU WIN!', width/2, height/2);
+}
 }
 
 function flipTiles(x, y, cheat){
@@ -62,19 +84,20 @@ function checkWin(){
   for (let y = 0; y < NUM_ROWS; y++){
     for(let x = 0; x < NUM_COLS; x++){
       if (tile !== grid[y][x]){
-        win = false;
-        break;
+        return false;
       }
     }
-    if (!win){break;}
   }
-  print(win);
+  return true;
 }
 
 function mousePressed(){
-  if (mouseButton === LEFT && mouseX <= width && mouseY <= height){
+  if (mouseButton === LEFT && mouseX <= width && mouseY <= height && !win){
     if (keyIsDown(SHIFT)){flipTiles(int(constrain(mouseX/SQUARE_SIZE, 0, NUM_COLS-1)), int(constrain(mouseY/SQUARE_SIZE, 0, NUM_ROWS-1)), true);}
     else{flipTiles(int(constrain(mouseX/SQUARE_SIZE, 0, NUM_COLS-1)), int(constrain(mouseY/SQUARE_SIZE, 0, NUM_ROWS-1)), false);}
-    checkWin();
+    if (checkWin()){
+      win = true;
+    }
+    else{win = false;}
   }
 }
