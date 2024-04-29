@@ -3,14 +3,14 @@
 // April 23, 2024
 
 const SQUARE_SIZE = 50; const NUM_ROWS = 6; const NUM_COLS = 6;
-let grid = [], squareMode = false; win = 0, n = 0;
+let grid = [], squareMode = false, win = 0, n = 0;
 
 function setup() {
   createCanvas(NUM_COLS * SQUARE_SIZE, NUM_ROWS * SQUARE_SIZE);
   for (let y = 0; y < NUM_ROWS; y++){
     grid.push([]);
     for (let x = 0; x < NUM_COLS; x++){
-      grid[y].push(int(random(2))*255);
+      grid[y].push(int(random(1))*255);
     }
   }
 }
@@ -60,14 +60,15 @@ function animateWin(){
     fill(255);
     rect(0, height/2-n/2, width, n);
     textWin();
-    if (n <= height){n += 3;}
+    // The height of the rectangle grows exponentially.
+    if (n <= height){n += 0.01*pow(n, 1.3)+1;}
   }
 }
 
 // Display 'YOU WIN!' in black on the center of the screen.
 function textWin(){
   fill(0);
-  textSize(60);
+  textSize(SQUARE_SIZE*NUM_COLS/5);
   textAlign(CENTER, CENTER);
   text('YOU WIN!', width/2, height/2);
 }
