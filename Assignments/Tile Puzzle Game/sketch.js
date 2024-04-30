@@ -2,12 +2,18 @@
 // Adam Abouelela
 // April 23, 2024
 
+// A puzzle game made of tiles that can be flipped to change their color between black and white.
+// To win all tiles need to be the same color whether it's black or white.
+// The shape in which the tiles are flipped can be toggled between a cross or square using the spacebar.
+// Holding down shift allows you to cheat by flipping a single tile.
+
 // SQUARE_SIZE is the size of each tile, while NUM_ROWS and NUM_COLS are the number of rows and columns.
+// These constants can be changed to be whatever the player wants.
 const SQUARE_SIZE = 50; const NUM_ROWS = 6; const NUM_COLS = 6;
 
 let grid = []; // grid will be a 2D array that stores the states of all tiles.
-let squareMode = false; // squareMode is a boolean that stores whether or not the flip mode should be a square(true) or cross(false).
-let win = false; // Stores whether the player has won.
+let squareMode = false; // squareMode is a boolean that  stores whether the flip mode should be a square(true) or cross(false).
+let win = false; // win stores whether the player has won.
 let n = 0; // n is used in the win animations.
 
 function setup() {
@@ -25,15 +31,16 @@ function setup() {
 function draw() {
   background(220);
   
-  // If the game was won, stroke is turned off.
+  // If the game was won, stroke is turned off so that it doesn't mess with the win animation.
   if (win){noStroke();}
 
   // Draws the grid.
   drawGrid();
-  // Creates an overlay on top of the grid to show which tiles would be flipped.
+
+  // Creates an overlay on top of the grid to show which tiles would be flipped, if the player was to click, using the index position in the 2D array of the tile that the mouse is closest to.
   if (!win){tileOverlay(int(constrain(mouseX/SQUARE_SIZE, 0, NUM_COLS-1)), int(constrain(mouseY/SQUARE_SIZE, 0, NUM_ROWS-1)));}
   
-  // If the game was won, display the win animation.
+  // If the game was won, display a win animation.
   if (win){animateWin();}
 }
 
@@ -86,11 +93,17 @@ function textWin(){
   text('YOU WIN!', width/2, height/2);
 }
 
+// This function flips the color of the correct tiles when the player clicks.
 function flipTiles(x, y){
+  // Flips the center tile.
   if (grid[y][x] === 255){grid[y][x] = 0;}
   else{grid[y][x] = 255;}
 
+  // Checks to see if shift is held down before flipping more tiles. If it is held down, it won't flip more tiles.
   if (!keyIsDown(SHIFT)){
+
+    // All tiles except the center tile are checked to make sure they exist before they can be flipped.
+    // The bottom and right tiles are immediately flipped no matter the state of squareMode.
     if (y !== NUM_ROWS-1){
       if (grid[y+1][x] === 255){grid[y+1][x] = 0;}
       else{grid[y+1][x] = 255;}
@@ -101,6 +114,7 @@ function flipTiles(x, y){
       else{grid[y][x+1] = 255;}
     }
 
+    // If the flip mode is square, then the bottom-right tile is flipped.
     if (squareMode){
       if (x !== NUM_COLS-1 && y !== NUM_ROWS-1){
         if (grid[y+1][x+1] === 255){grid[y+1][x+1] = 0;}
@@ -108,6 +122,7 @@ function flipTiles(x, y){
       }
     }
 
+    // If the flip mode isn't square (so it's a cross), then the top and left tiles are flipped.
     else{
       if (y !== 0){
         if (grid[y-1][x] === 255){grid[y-1][x] = 0;}
@@ -122,18 +137,26 @@ function flipTiles(x, y){
   }
 }
 
-// Creates an overlay on the tiles that will be flipped based on the 
+// Creates an overlay on the tiles that would be flipped if the player clicks.
+// This function works similarly to how flipTiles() works in terms of checking which tiles should be flipped/highlighted.
 function tileOverlay(x, y){
+  // Green semi-transparent color.
   fill(50, 220, 100, 150);
 
+  // The center tile is always highlighted.
   square(x*SQUARE_SIZE, y*SQUARE_SIZE, SQUARE_SIZE);
 
+  // Will only highlight other tiles if the player isn't holding shift.
   if (!keyIsDown(SHIFT)){
+    // All tiles except the center are checked to make sure that they exist before highlighting them.
+    // The bottom and right tiles are highlighted immediately since they are highlighted in both cross and square mode.
     if (y !== NUM_ROWS-1){square(x*SQUARE_SIZE, (y+1)*SQUARE_SIZE, SQUARE_SIZE);}
     if (x !== NUM_COLS-1){square((x+1)*SQUARE_SIZE, y*SQUARE_SIZE, SQUARE_SIZE);}
 
+    // Highlights the bottom-right tile if square mode is active.
     if (squareMode){if (x !== NUM_COLS-1 && y !== NUM_ROWS-1){square((x+1)*SQUARE_SIZE, (y+1)*SQUARE_SIZE, SQUARE_SIZE);}}
 
+    // Hightlights the top and left tiles if square mode isn't active (which means that cross mode is active instead).
     else{
       if (y !== 0){square(x*SQUARE_SIZE, (y-1)*SQUARE_SIZE, SQUARE_SIZE);}
       if (x !== 0){square((x-1)*SQUARE_SIZE, y*SQUARE_SIZE, SQUARE_SIZE);}
@@ -141,7 +164,7 @@ function tileOverlay(x, y){
   }
 }
 
-// Checks to see if every tile's color is equal to the first tile. If so, return true.
+// Checks to see if every tile's color is equal to the first tile. If so, it returns true.
 function checkWin(){
   let tile = grid[0][0];
   for (let y = 0; y < NUM_ROWS; y++){
@@ -158,14 +181,14 @@ function checkWin(){
 function mousePressed(){
   // If the mouse is on the canvas while a left click occurs and the game hasn't been won, certain tiles will flip color.
   if (mouseButton === LEFT && mouseX <= width && mouseY <= height && !win){
-    // 
+    // Flip the correct tiles using the index position in the 2D array of the tile that the mouse is closest to.
     flipTiles(int(constrain(mouseX/SQUARE_SIZE, 0, NUM_COLS-1)), int(constrain(mouseY/SQUARE_SIZE, 0, NUM_ROWS-1)));
     // Check to see if the flip caused the game to be won.
     win = checkWin();
   }
 }
 
-// When the spacebar is pressed toggle the flip mode between a square and a cross.
+// When the spacebar is pressed toggle the tile flip mode between a square and a cross.
 function keyPressed(){
   if (key === ' '){
     if (squareMode){squareMode = false;}
