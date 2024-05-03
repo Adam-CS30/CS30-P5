@@ -27,7 +27,7 @@ class Player{
   determineMovement(){
     for (let action in keybinds){
       for (let keyBind of keybinds[action]){
-        if (keyIsDown(keyBind)){
+        if (keyIsDown('a')){
           this.move(action);
           break;
         }
