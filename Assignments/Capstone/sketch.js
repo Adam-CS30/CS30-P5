@@ -3,39 +3,54 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let keybinds = {}, player;
+let player;
 
 function setup() {
-  keybinds = {'left':[LEFT_ARROW, 'a'], 'right':[RIGHT_ARROW, 'd'], 'up':[UP_ARROW, 'w'], 'down':[DOWN_ARROW, 's'], 'dash':[' ', SHIFT]}
-  player = new Player(50, 50)
+  player = new Player(50,50)
   createCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
   background(220);
   player.determineMovement();
+  player.display();
 }
 
 class Player{
   constructor(x, y){
-    this.pos = createVector(x,y);
+    this.pos = createVector(x, y);
     this.vel = createVector(0, 0);
     this.acc = createVector(0, 0);
+    this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83], 'dash':[32, SHIFT]}
+    this.dashing = false;
     this.alive = true;
   }
 
   determineMovement(){
-    for (let action in keybinds){
-      for (let keyBind of keybinds[action]){
-        if (keyIsDown('a')){
+    for (let action in this.keybinds){
+      for (let keyBind of this.keybinds[action]){
+        if (keyIsDown(keyBind)){
           this.move(action);
-          break;
         }
       }
     }
   }
 
   move(action){
-    print(action);
+    if (action === 'left' && this.vel.x > -6) {this.vel.x -= 1.5;}
+    if (action === 'right' && this.vel.x < 6) {this.vel.x += 1.5;}
+    if (action === 'up' && this.vel.y > -6) {this.vel.y -= 1.5;}
+    if (action === 'down' && this.vel.y < 6) {this.vel.y += 1.5;}
+    if (action === 'dash' && !this.dashing) {this.vel.x = 14; this.dashing = true;}
+  }
+
+  display(){
+    this.vel.add(this.acc);
+    this.pos.add(this.vel);
+    this.vel.x *= 0.9;
+    this.vel.y *= 0.9;
+    this.acc.x = 0;
+    this.acc.y = 0;
+    circle(this.pos.x, this.pos.y, 20)
   }
 }
