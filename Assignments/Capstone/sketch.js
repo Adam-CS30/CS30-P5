@@ -54,3 +54,9 @@ class Player{
     circle(this.pos.x, this.pos.y, 20)
   }
 }
+
+class Terrain{
+  constructor(x, y, size){
+    this.x = x; this.y = y; this.size = size;
+  }
+}
