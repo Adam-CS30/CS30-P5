@@ -23,6 +23,7 @@ class Player{
     this.acc = createVector(0, 0);
     this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83], 'dash':[32, SHIFT]}
     this.dashing = false;
+    this.dashes = 1
     this.alive = true;
   }
 
@@ -41,14 +42,14 @@ class Player{
     if (action === 'right' && this.vel.x < 6) {this.vel.x += 1.5;}
     if (action === 'up' && this.vel.y > -6) {this.vel.y -= 1.5;}
     if (action === 'down' && this.vel.y < 6) {this.vel.y += 1.5;}
-    if (action === 'dash' && !this.dashing) {this.vel.x = 14; this.dashing = true;}
+    if (action === 'dash' && !this.dashing) {this.vel.x = 20; this.dashing = true;}
   }
 
   display(){
     this.vel.add(this.acc);
     this.pos.add(this.vel);
-    this.vel.x *= 0.9;
-    this.vel.y *= 0.9;
+    this.vel.x *= 0.8;
+    this.vel.y *= 0.8;
     this.acc.x = 0;
     this.acc.y = 0;
     circle(this.pos.x, this.pos.y, 20)
