@@ -3,18 +3,31 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player;
+let player, paused = false;
 
 function setup() {
   player = new Player(50,50)
   createCanvas(windowWidth, windowHeight);
-  frameRate(1);
 }
 
 function draw() {
   background(220);
-  player.determineMovement();
-  player.display();
+  if (!paused){player.determineMovement(); player.update();}
+    player.display();
+  if (paused){pauseScreen();}
+}
+
+function pauseScreen(){
+  fill(30,180);
+  rect(0,0,width,height);
+}
+
+function keyPressed(){
+  if (keyCode === ESCAPE){
+    print('hi')
+    if (paused){paused = false}
+    else{paused = true}
+  }
 }
 
 class Player{
@@ -48,7 +61,7 @@ class Player{
     if (action === 'down') {this.vel.y += this.movespeed;}
   }
 
-  display(){
+  update(){
     this.vel.add(this.acc);
     this.pos.add(this.vel);
     this.vel.x *= 0.75;
@@ -56,10 +69,12 @@ class Player{
     this.acc.x = 0;
     this.acc.y = 0;
 
-    noStroke();
     this.dashing = false;
     this.movespeed = 1;
+  }
 
+  display(){
+    noStroke();
     fill(100, 200, 100);
     rect(this.pos.x, this.pos.y, 20, 40);
   }

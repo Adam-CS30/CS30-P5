@@ -3,10 +3,14 @@ function setup() {
   frameRate(1);
 }
 
+let g = 220
+
 function draw() {
-  background(220);
+  g = 220
+  background(g);
+  print(frameCount);
 }
 
 function keyPressed(){
-  print(key);
+  g=0;
 }
