@@ -34,11 +34,11 @@ class Player{
   constructor(x, y){
     this.pos = createVector(x, y);
     this.vel = createVector(0, 0);
-    this.acc = createVector(0, 0);
     this.keybinds = {'dash':[32, SHIFT], 'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]}
     this.dashing = false;
-    this.movespeed = 1;
-    this.dashes = 3;
+    this.facing = 1;
+    this.movespeed = 0.8;
+    this.dashes = 1;
     this.alive = true;
   }
 
@@ -64,10 +64,13 @@ class Player{
   update(){
     this.vel.add(this.acc);
     this.pos.add(this.vel);
-    this.vel.x *= 0.75;
-    this.vel.y *= 0.75;
-    this.acc.x = 0;
-    this.acc.y = 0;
+
+    if (abs(this.vel.x) > 0.01){this.vel.x *= 0.75;}
+    else{this.vel.x = 0;}
+    if (abs(this.vel.y) > 0.01){this.vel.y *= 0.75;}
+    else{this.vel.y = 0;}
+
+    this.dashes += 1/120
 
     this.dashing = false;
     this.movespeed = 1;
