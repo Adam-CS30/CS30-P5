@@ -3,18 +3,33 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, paused = false;
+let player, screen1, paused = false;
 
 function setup() {
-  player = new Player(50,50)
   createCanvas(windowWidth, windowHeight);
+  frameRate(1);
+  player = new Player(50,50);
+  screen1 = [new NeutralTerrain(width/4, height/2, width/2, 20)];
+
 }
 
 function draw() {
   background(220);
-  if (!paused){player.determineMovement(); player.update();}
-    player.display();
+
+  if (!paused){updateAll();}
+  displayAll();
   if (paused){pauseScreen();}
+}
+
+function updateAll(){
+  player.determineMovement();
+  player.update();
+  for (let terrain of screen1){terrain.update();}
+}
+
+function displayAll(){
+  player.display();
+  for (let terrain of screen1){terrain.display();}
 }
 
 function pauseScreen(){
@@ -35,10 +50,11 @@ function keyPressed(){
 class Player{
   constructor(x, y){
     this.pos = createVector(x, y);
+    this.oldPos = createVector(x, y);
     this.vel = createVector(0, 0);
     this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]}
     this.dashing = false;
-	this.stationary = true;
+	  this.stationary = true;
     this.facing = 1;
     this.movespeed = 0.8;
     this.dashes = 1;
@@ -77,7 +93,8 @@ class Player{
   }
 
   update(){
-    //this.vel.add(this.acc);
+    this.oldPos.x = this.pos.x;
+    this.oldPos.y = this.pos.y;
     this.pos.add(this.vel);
 
     if (abs(this.vel.x) > 0.01){this.vel.x *= 0.75;}
@@ -95,12 +112,40 @@ class Player{
     noStroke();
     fill(100, 200, 100);
     rect(this.pos.x, this.pos.y, 20, 40);
+    rect(this.oldPos.x, this.oldPos.y, 20, 40);
   }
 }
 
 class Terrain{
   constructor(x, y, sizeX, sizeY){
     this.x = x; this.y = y; this.sX = sizeX; this.sY = sizeY;
+    this.collidable = true;
+    this.touchable = true;
+  }
 
+  checkCollision(){
+    if (this.x < player.pos.x && player.pos.x < this.x + this.sX &&
+       this.y < player.pos.y && player.pos.y < this.y + this.sY) {this.onCollision();}
+  }
+
+  update(){
+    if (this.collidable){this.checkCollision();}
+  }
+
+  display(){
+    noStroke();
+    fill(200, 200, 100);
+    rect(this.x, this.y, this.sX, this.sY);
+  }
+}
+
+class NeutralTerrain extends Terrain{
+  constructor(x, y, sizeX, sizeY){
+    super(x, y, sizeX, sizeY); 
+  }
+
+  onCollision(){
+    print('Collision');
+    if(false){}
   }
 }
