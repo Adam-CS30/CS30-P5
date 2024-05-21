@@ -7,7 +7,6 @@ let player, screen1, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  frameRate(1);
   player = new Player(50,50);
   screen1 = [new NeutralTerrain(width/4, height/2, width/2, 20)];
 
@@ -28,8 +27,11 @@ function updateAll(){
 }
 
 function displayAll(){
+  push();
+  //scale(1);
   player.display();
   for (let terrain of screen1){terrain.display();}
+  pop();
 }
 
 function pauseScreen(){

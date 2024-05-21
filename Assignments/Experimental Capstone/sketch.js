@@ -3,12 +3,12 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, screen1, paused = false;
+let player, screen1, scaling = 2.4, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   player = new Player(50,50);
-  screen1 = [new NeutralTerrain(width/4, height/2, width/2, 20)];
+  screen1 = [new NeutralTerrain(width/(4*scaling), height/(2*scaling), 10, 10)];
 }
 
 function draw() {
@@ -26,8 +26,11 @@ function updateAll(){
 }
 
 function displayAll(){
+  push();
+  scale(scaling);
   player.display();
   for (let terrain of screen1){terrain.display();}
+  pop();
 }
 
 function pauseScreen(){
@@ -39,7 +42,7 @@ function keyPressed(){
   if (key === ' ' && player.dashes > 0) {player.dash();}
 
   else if (keyCode === ESCAPE){
-    print('hi')
+    print('pause triggered')
     if (paused){paused = false;}
     else{paused = true;}
   }
@@ -55,17 +58,15 @@ class Player{
     this.dashing = false;
 	  this.stationary = true;
     this.facing = 1;
-    this.movespeed = 0.8;
+    this.regularMovespeed = 0.5;
     this.dashes = 1;
     this.alive = true;
   }
 
   determineMovement(){
-    this.stationary = true;
     for (let action in this.keybinds){
       for (let keyBind of this.keybinds[action]){
         if (keyIsDown(keyBind)){
-          this.stationary = false;
           this.move(action);
           break;
         }
@@ -76,7 +77,7 @@ class Player{
   dash(){
     this.dashing = true;
     this.dashes--;
-    this.movespeed = 35;
+    this.movespeed = this.regularMovespeed*40;
     
     if (this.stationary){
       if (this.facing === 0){this.vel.x -= this.movespeed;}
@@ -87,7 +88,7 @@ class Player{
   move(action){
     if (action === 'up') {this.vel.y -= this.movespeed;}
     if (action === 'down') {this.vel.y += this.movespeed;}
-	if (action === 'left') {this.vel.x -= this.movespeed; this.facing = 0;}
+	  if (action === 'left') {this.vel.x -= this.movespeed; this.facing = 0;}
     if (action === 'right') {this.vel.x += this.movespeed; this.facing = 1;}
   }
 
@@ -101,10 +102,13 @@ class Player{
     if (abs(this.vel.y) > 0.01){this.vel.y *= 0.75;}
     else{this.vel.y = 0;}
 
+    if (abs(this.vel.x) > 0 || abs(this.vel.y) > 0){this.stationary = false;}
+    else{this.stationary = true;}
+
     this.dashes += 1/120
 
     this.dashing = false;
-    this.movespeed = 0.8;
+    this.movespeed = this.regularMovespeed;
   }
 
   display(){

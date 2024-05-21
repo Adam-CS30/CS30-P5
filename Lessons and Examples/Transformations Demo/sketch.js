@@ -10,7 +10,6 @@ function setup() {
 
 function draw() {
   background(255);
-  drawBasicGrid(200);
 
 
   //transformation one: TRANSLATION
@@ -30,24 +29,25 @@ function draw() {
 
 
   //transformation two: SCALE
-  /*
-  rectangleRed(40,0);
-  let scaleAmount = map(mouseX,0,width,1,10);
+  
   translate(140,140);
+  drawBasicGrid(200);
+  rectangleRed(40,40);
+  let scaleAmount = map(mouseX,0,width,1,10);
   scale(scaleAmount);
   drawBasicGrid(120);
   rectMode(CENTER);
-  rectangleBlue(100,100);*/
+  rectangleBlue(40,40);
 
 
 
 
-  //transformation three: ROTATION
+  /* transformation three: ROTATION
   //reminder: rotations are measured in radians, not degrees! Functions can help with the conversion...
   translate(width/2,height/2);
   rotate(frameCount/5);
   drawBasicGrid(100);
-  face(0,0);
+  face(0,0);*/
 
 
   //Combinations of Transformations
