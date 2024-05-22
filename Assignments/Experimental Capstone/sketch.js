@@ -3,12 +3,12 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, screen1, scaling = 2.4, paused = false;
+let player, screen1, scaling = 2.5, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  player = new Player(50,50);
-  screen1 = [new NeutralTerrain(width/(4*scaling), height/(2*scaling), 10, 10)];
+  player = new Player(2, height/(2*scaling));
+  screen1 = [new NeutralTerrain(0, 5, 1, 1), new NeutralTerrain(2, 5, 1, 1), new NeutralTerrain(4, 5, 1, 1)];
 }
 
 function draw() {
@@ -20,7 +20,6 @@ function draw() {
 }
 
 function updateAll(){
-  player.determineMovement();
   player.update();
   for (let terrain of screen1){terrain.update();}
 }
@@ -51,14 +50,16 @@ function keyPressed(){
 class Player{
   // 9 x 18 hitbox
   constructor(x, y){
-    this.pos = createVector(x, y);
+    this.realPos = createVector(x, y);
     this.oldPos = createVector(x, y);
+    this.pos = createVector(x, y);
+
     this.vel = createVector(0, 0);
     this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]}
     this.dashing = false;
 	  this.stationary = true;
     this.facing = 1;
-    this.regularMovespeed = 0.5;
+    this.regularMovespeed = 1;
     this.dashes = 1;
     this.alive = true;
   }
@@ -77,7 +78,7 @@ class Player{
   dash(){
     this.dashing = true;
     this.dashes--;
-    this.movespeed = this.regularMovespeed*40;
+    this.movespeed = this.regularMovespeed*30;
     
     if (this.stationary){
       if (this.facing === 0){this.vel.x -= this.movespeed;}
@@ -92,15 +93,26 @@ class Player{
     if (action === 'right') {this.vel.x += this.movespeed; this.facing = 1;}
   }
 
-  update(){
+  modifyPosition(){
+    this.realPos.add(this.vel);
+
     this.oldPos.x = this.pos.x;
     this.oldPos.y = this.pos.y;
-    this.pos.add(this.vel);
 
-    if (abs(this.vel.x) > 0.01){this.vel.x *= 0.75;}
-    else{this.vel.x = 0;}
-    if (abs(this.vel.y) > 0.01){this.vel.y *= 0.75;}
-    else{this.vel.y = 0;}
+    this.pos.x = round(this.realPos.x);
+    this.pos.y = round(this.realPos.y);
+  }
+
+  update(){
+    this.modifyPosition()
+
+    if (!this.dashing){
+      player.determineMovement();
+      if (abs(this.vel.x) > 0.03){this.vel.x *= 0.5;}
+      else{this.vel.x = 0;}
+      if (abs(this.vel.y) > 0.03){this.vel.y *= 0.5;}
+      else{this.vel.y = 0;}
+    }
 
     if (abs(this.vel.x) > 0 || abs(this.vel.y) > 0){this.stationary = false;}
     else{this.stationary = true;}
