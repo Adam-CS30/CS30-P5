@@ -63,14 +63,14 @@ class Player{
     this.triggerJump = false;
     this.triggerDash = false;
     this.dashing = false;
+    this.grounded = false;
 
 	  this.stationary = true;
-    this.grounded = true;
     this.alive = true;
 
     this.regularMovespeed = 1;
     this.facing = 1;
-    this.dashes = 2;
+    this.dashes = 20;
   }
 
   checkMovement(){
@@ -99,7 +99,7 @@ class Player{
       for (let keyBind of this.specialKeys[action]){
         if (key === keyBind){
           if (action === 'dash' && this.dashes > 0){this.triggerDash = true; this.dash();}
-          else if (action === 'jump' /*&& this.grounded*/){this.triggerjump = true; this.jump();}
+          else if (action === 'jump' && this.grounded){this.grounded = false; this.jump();}
           break;
         }
       }
@@ -112,7 +112,12 @@ class Player{
     this.dashes--;
     this.movespeed = this.regularMovespeed*30;
     
-    if (this.stationary){
+    this.checkMovement();
+    print(this.toMove)
+    if (this.toMove.length === 1){this.movespeed = this.regularMovespeed*30;}
+    else if (this.toMove.length === 2){this.movespeed = sqrt(0.5*pow(this.regularMovespeed*30,2));}
+
+    else{
       if (this.facing === 0){this.moveVel.x -= this.movespeed;}
       else {this.moveVel.x += this.movespeed;}
     }
@@ -120,7 +125,7 @@ class Player{
 
   jump(){
     print('jump');
-    this.natural.y -= 7;
+    this.naturalVel.y -= 6;
   }
 
   move(){
@@ -133,7 +138,11 @@ class Player{
   }
 
   modifyPosition(){
-    this.realPos.add(this.moveVel).add(this.naturalVel);
+    this.realPos.add(this.moveVel);
+    this.realPos.add(this.naturalVel);
+    
+    if (this.realPos.y > 190){this.grounded = true; this.realPos.y = 190;}
+    if (this.grounded || this.dashing){this.naturalVel.y = 0;}
 
     this.oldPos.x = this.pos.x;
     this.oldPos.y = this.pos.y;
@@ -143,15 +152,17 @@ class Player{
   }
 
   update(){
-    this.checkMovement();
+    if (!this.triggerDash){this.checkMovement();}
     this.move();
     this.modifyPosition();
+
 
     if (!this.dashing){
       if (abs(this.moveVel.x) > 0.03){this.moveVel.x *= 0.5;}
       else{this.moveVel.x = 0;}
       if (abs(this.moveVel.y) > 0.03){this.moveVel.y *= 0.5;}
       else{this.moveVel.y = 0;}
+      if (! this.grounded){this.naturalVel.y += 0.35;}
     }
 
     if (abs(this.moveVel.x) > 0 || abs(this.moveVel.y) > 0){this.stationary = false;}
@@ -161,6 +172,7 @@ class Player{
     this.dashing = false;
     this.toMove = [];
     this.movespeed = this.regularMovespeed;
+    if (this.pos.y < 137){print(this.pos.y)}
   }
 
   display(){
