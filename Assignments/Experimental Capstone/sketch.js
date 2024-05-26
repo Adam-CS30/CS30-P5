@@ -68,6 +68,7 @@ class Player{
 	  this.stationary = true;
     this.alive = true;
 
+    this.dashTime = -20;
     this.regularMovespeed = 1;
     this.facing = 1;
     this.dashes = 20;
@@ -109,18 +110,14 @@ class Player{
   dash(){
     print('dash');
     this.dashing = true;
+    this.dashTime = frameCount;
     this.dashes--;
-    this.movespeed = this.regularMovespeed*30;
+    this.movespeed = this.regularMovespeed*10;
     
     this.checkMovement();
-    print(this.toMove)
-    if (this.toMove.length === 1){this.movespeed = this.regularMovespeed*30;}
-    else if (this.toMove.length === 2){this.movespeed = sqrt(0.5*pow(this.regularMovespeed*30,2));}
-
-    else{
-      if (this.facing === 0){this.moveVel.x -= this.movespeed;}
-      else {this.moveVel.x += this.movespeed;}
-    }
+    if (this.toMove.length === 1){this.movespeed = this.movespeed;}
+    else if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.movespeed,2)/2);}
+    else{this.moveVel.x += this.facing * this.movespeed;}
   }
 
   jump(){
@@ -131,7 +128,7 @@ class Player{
   move(){
     for (let action of this.toMove){
       if (action === 'right') {this.moveVel.x += this.movespeed; this.facing = 1;}
-      else if (action === 'left') {this.moveVel.x -= this.movespeed; this.facing = 0;}
+      else if (action === 'left') {this.moveVel.x -= this.movespeed; this.facing = -1;}
       else if (action === 'up' && this.triggerDash) {this.moveVel.y -= this.movespeed;}
       else if (action === 'down' && this.triggerDash) {this.moveVel.y += this.movespeed;}
     }
@@ -141,7 +138,8 @@ class Player{
     this.realPos.add(this.moveVel);
     this.realPos.add(this.naturalVel);
     
-    if (this.realPos.y > 190){this.grounded = true; this.realPos.y = 190;}
+    if (this.realPos.y >= 190){this.grounded = true; this.realPos.y = 190;}
+    else{this.grounded = false;}
     if (this.grounded || this.dashing){this.naturalVel.y = 0;}
 
     this.oldPos.x = this.pos.x;
@@ -152,27 +150,31 @@ class Player{
   }
 
   update(){
+    // dash deceleration
     if (!this.triggerDash){this.checkMovement();}
-    this.move();
+    if (this.triggerDash || !this.dashing){this.move();}
     this.modifyPosition();
-
 
     if (!this.dashing){
       if (abs(this.moveVel.x) > 0.03){this.moveVel.x *= 0.5;}
       else{this.moveVel.x = 0;}
       if (abs(this.moveVel.y) > 0.03){this.moveVel.y *= 0.5;}
       else{this.moveVel.y = 0;}
-      if (! this.grounded){this.naturalVel.y += 0.35;}
+
+      if (! this.grounded){
+        if (this.naturalVel.y < 8){this.naturalVel.y += 0.35;}
+        else{this.naturalVel.y = 8;}
+      }
     }
 
     if (abs(this.moveVel.x) > 0 || abs(this.moveVel.y) > 0){this.stationary = false;}
     else{this.stationary = true;}
 
+    if (this.dashing && frameCount - this.dashTime === 6){this.dashing = false; this.moveVel.y = 0;}
     this.triggerDash = false;
-    this.dashing = false;
     this.toMove = [];
     this.movespeed = this.regularMovespeed;
-    if (this.pos.y < 137){print(this.pos.y)}
+    if (this.realPos.y < 136){print('pos:', this.realPos.y); print('vel:', this.naturalVel.y+this.moveVel.y)}
   }
 
   display(){
