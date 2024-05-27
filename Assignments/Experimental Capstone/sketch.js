@@ -7,6 +7,7 @@ let player, screen1, scaling = 2.7, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  frameRate(1)
   player = new Player(2, height/(2*scaling));
   screen1 = [new NeutralTerrain(0, 5, 9, 9), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
 }
@@ -37,7 +38,7 @@ function pauseScreen(){
   rect(0,0,width,height);
 }
 
-function keyPressed(){
+function keyPressed(){ //runs at the end of the frame in the time between this frame and the next (essentially an inbetween frame...)
   if (keyCode === ESCAPE){
     print('pause triggered');
     if (paused){paused = false;}
@@ -50,15 +51,17 @@ function keyPressed(){
 class Player{
   // 9 x 17 hitbox
   constructor(x, y){
-    this.realPos = createVector(x, y);
-    this.oldPos = createVector(x, y);
-    this.pos = createVector(x, y);
-    this.moveVel = createVector(0, 0);
-    this.naturalVel = createVector(0, 0);
+    this.realPos = createVector(x, y); // Current position of character.
+    this.oldPos = createVector(x, y); // Position of character last frame.
+    this.pos = createVector(x, y); // Rounded position of character.
+
+    this.controlledVel = createVector(0, 0); // This velocity is only affected by walking/running.
+    this.naturalVel = createVector(0, 0); // This velocity is only affected by jumping/gravity.
+    this.dashVel = createVector(0,0); // This velocity is only active when dashing.
 
     this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]};
     this.specialKeys = {'dash':['j', 'e'], 'jump':['k', ' ']};
-    this.toMove = [];
+    this.toMove = []; // A list that containins the directions that the player wishes to move each frame.
 
     this.triggerJump = false;
     this.triggerDash = false;
@@ -75,6 +78,8 @@ class Player{
   }
 
   checkMovement(){
+    this.toMove = [];
+
     for (let action in this.keybinds){
       for (let keyBind of this.keybinds[action]){
         if (keyIsDown(keyBind)){
@@ -113,11 +118,17 @@ class Player{
     this.dashTime = frameCount;
     this.dashes--;
     this.movespeed = this.regularMovespeed*10;
+    push();
+    scale(scaling);
+    player.display();
+    this.display()
+    pop()
     
-    this.checkMovement();
+    // Position is actually updated on the next frame;
+    this.checkMovement(); // It rechecks the movement keys in case the user pressed a directional key really quickly in the time between frames.
     if (this.toMove.length === 1){this.movespeed = this.movespeed;}
     else if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.movespeed,2)/2);}
-    else{this.moveVel.x += this.facing * this.movespeed;}
+    else{this.controlledVel.x += this.facing * this.movespeed;}
   }
 
   jump(){
@@ -125,17 +136,17 @@ class Player{
     this.naturalVel.y -= 6;
   }
 
-  move(){
+  modifyVelocity(){
     for (let action of this.toMove){
-      if (action === 'right') {this.moveVel.x += this.movespeed; this.facing = 1;}
-      else if (action === 'left') {this.moveVel.x -= this.movespeed; this.facing = -1;}
-      else if (action === 'up' && this.triggerDash) {this.moveVel.y -= this.movespeed;}
-      else if (action === 'down' && this.triggerDash) {this.moveVel.y += this.movespeed;}
+      if (action === 'right') {this.controlledVel.x += this.movespeed; this.facing = 1;}
+      else if (action === 'left') {this.controlledVel.x -= this.movespeed; this.facing = -1;}
+      else if (action === 'up' && this.triggerDash) {this.controlledVel.y -= this.movespeed;}
+      else if (action === 'down' && this.triggerDash) {this.controlledVel.y += this.movespeed;}
     }
   }
 
   modifyPosition(){
-    this.realPos.add(this.moveVel);
+    this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
     if (this.realPos.y >= 190){this.grounded = true; this.realPos.y = 190;}
@@ -152,34 +163,36 @@ class Player{
   update(){
     // dash deceleration
     if (!this.triggerDash){this.checkMovement();}
-    if (this.triggerDash || !this.dashing){this.move();}
+    print(frameCount);
+    if (this.triggerDash || !this.dashing){this.modifyVelocity();}
     this.modifyPosition();
 
     if (!this.dashing){
-      if (abs(this.moveVel.x) > 0.03){this.moveVel.x *= 0.5;}
-      else{this.moveVel.x = 0;}
-      if (abs(this.moveVel.y) > 0.03){this.moveVel.y *= 0.5;}
-      else{this.moveVel.y = 0;}
+      if (abs(this.controlledVel.x) > 0.03){this.controlledVel.x *= 0.5;}
+      else{this.controlledVel.x = 0;}
+      if (abs(this.controlledVel.y) > 0.03){this.controlledVel.y *= 0.5;}
+      else{this.controlledVel.y = 0;}
 
       if (! this.grounded){
-        if (this.naturalVel.y < 8){this.naturalVel.y += 0.35;}
+        if (this.naturalVel.y < 8){this.naturalVel.y += 0.3;}
         else{this.naturalVel.y = 8;}
       }
     }
 
-    if (abs(this.moveVel.x) > 0 || abs(this.moveVel.y) > 0){this.stationary = false;}
+    if (abs(this.controlledVel.x) > 0 || abs(this.controlledVel.y) > 0){this.stationary = false;}
     else{this.stationary = true;}
 
-    if (this.dashing && frameCount - this.dashTime === 6){this.dashing = false; this.moveVel.y = 0;}
+    if (this.dashing && frameCount - this.dashTime === 6){this.dashing = false; this.dashVel.y = 0;}
     this.triggerDash = false;
-    this.toMove = [];
     this.movespeed = this.regularMovespeed;
-    if (this.realPos.y < 136){print('pos:', this.realPos.y); print('vel:', this.naturalVel.y+this.moveVel.y)}
+    if (this.realPos.y < 135.6){print('pos:', this.realPos.y); print('vel:', this.naturalVel.y+this.controlledVel.y);}
   }
 
   display(){
     noStroke();
     fill(100, 200, 100);
+    if (this.dashing){fill(100,100,200)}
+    if (this.triggerDash){fill(random(255),random(255),255)}
     rect(this.realPos.x, this.realPos.y, 9, 17);
   }
 }
