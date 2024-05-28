@@ -12,7 +12,7 @@ function setup() {
 }
 
 function draw() {
-  background(220);
+  //background(220);
 
   if (!paused){updateAll();}
   displayAll();
@@ -42,6 +42,7 @@ function keyPressed(){ //runs at the end of the frame in the time between this f
     print('pause triggered');
     if (paused){paused = false;}
     else{paused = true;}
+    background(220)
   }
 
   else{player.checkAbility();}
@@ -68,11 +69,13 @@ class Player{
     this.grounded = false;
 
 	  this.stationary = true;
-    this.alive = true;
+    this.alive = true; // Self-explanatory
 
-    this.dashTime = -20;
-    this.regularMovespeed = 1;
-    this.facing = 1;
+    this.dashTime = -999; // # of frames since the last dash was triggered.
+    this.dashDuration = 12 // # of frames that a dash lasts.
+    this.regularMovespeed = 1; // Player's regular walkspeed / movespeed.
+    this.facing = 1; // Direcrtion that the player is facing (left = -1 and right = 1).
+    this.hangtime = 3; // # of frames before gravity affects the player midair.
     this.dashes = 20;
   }
 
@@ -116,12 +119,10 @@ class Player{
     this.dashing = true;
     this.dashTime = frameCount;
     this.dashes--;
-    this.movespeed = this.regularMovespeed*10;
-    push();
-    scale(scaling);
-    player.display();
-    this.display()
-    pop()
+    this.movespeed = this.regularMovespeed*7;
+    this.dashVel = createVector(0,0);
+    this.naturalVel = createVector(0,0);
+    this.controlledVel = createVector(0,0);
     
     // Position is actually updated on the next frame;
     this.checkMovement(); // It rechecks the movement keys in case the user pressed a directional key really quickly in the time between frames.
@@ -145,12 +146,12 @@ class Player{
   }
 
   modifyPosition(){
+    if (this.grounded){this.naturalVel.y = 0;}
     this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
     if (this.realPos.y >= 190){this.grounded = true; this.realPos.y = 190;}
     else{this.grounded = false;}
-    if (this.grounded || this.dashing){this.naturalVel.y = 0;}
 
     this.oldPos.x = this.pos.x;
     this.oldPos.y = this.pos.y;
@@ -162,7 +163,6 @@ class Player{
   update(){
     // dash deceleration
     if (!this.triggerDash){this.checkMovement();}
-    print(frameCount);
     if (this.triggerDash || !this.dashing){this.modifyVelocity();}
     this.modifyPosition();
 
@@ -181,17 +181,17 @@ class Player{
     if (abs(this.controlledVel.x) > 0 || abs(this.controlledVel.y) > 0){this.stationary = false;}
     else{this.stationary = true;}
 
-    if (this.dashing && frameCount - this.dashTime === 6){this.dashing = false; this.dashVel.y = 0;}
+    if (this.dashing && frameCount - this.dashTime === this.dashDuration){this.dashing = false; this.controlledVel.x = 0; this.controlledVel.y = 0; this.dashVel.y = 0;}
     this.triggerDash = false;
     this.movespeed = this.regularMovespeed;
-    if (this.realPos.y < 135.6){print('pos:', this.realPos.y); print('vel:', this.naturalVel.y+this.controlledVel.y);}
+    if (this.realPos.y < 128){print(this.dashing);print('pos:', this.realPos.y); print('vel:', this.naturalVel.y);}
   }
 
   display(){
     noStroke();
-    fill(100, 200, 100);
-    if (this.dashing){fill(50,180,255)}
     if (this.triggerDash){fill(170,220,255)}
+    else if (this.dashing){fill(50,180,255)}
+    else{fill(100,200,100);}
     rect(this.realPos.x, this.realPos.y, 9, 17);
   }
 }
