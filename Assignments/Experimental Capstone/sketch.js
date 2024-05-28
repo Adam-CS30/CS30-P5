@@ -7,7 +7,6 @@ let player, screen1, scaling = 2.7, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  frameRate(1)
   player = new Player(2, height/(2*scaling));
   screen1 = [new NeutralTerrain(0, 5, 9, 9), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
 }
@@ -191,8 +190,8 @@ class Player{
   display(){
     noStroke();
     fill(100, 200, 100);
-    if (this.dashing){fill(100,100,200)}
-    if (this.triggerDash){fill(random(255),random(255),255)}
+    if (this.dashing){fill(50,180,255)}
+    if (this.triggerDash){fill(170,220,255)}
     rect(this.realPos.x, this.realPos.y, 9, 17);
   }
 }
