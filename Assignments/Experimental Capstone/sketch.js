@@ -12,7 +12,7 @@ function setup() {
 }
 
 function draw() {
-  //background(220);
+  background(220);
 
   if (!paused){updateAll();}
   displayAll();
@@ -27,8 +27,8 @@ function updateAll(){
 function displayAll(){
   push();
   scale(scaling);
-  player.display();
   for (let terrain of screen1){terrain.display();}
+  player.display();
   pop();
 }
 
@@ -57,7 +57,6 @@ class Player{
 
     this.controlledVel = createVector(0, 0); // This velocity is only affected by walking/running.
     this.naturalVel = createVector(0, 0); // This velocity is only affected by jumping/gravity.
-    this.dashVel = createVector(0,0); // This velocity is only active when dashing.
 
     this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]};
     this.specialKeys = {'dash':['j', 'e'], 'jump':['k', ' ']};
@@ -72,10 +71,11 @@ class Player{
     this.alive = true; // Self-explanatory
 
     this.dashTime = -999; // # of frames since the last dash was triggered.
-    this.dashDuration = 12 // # of frames that a dash lasts.
-    this.regularMovespeed = 1; // Player's regular walkspeed / movespeed.
+    this.airborneTime = -999;
+    this.dashDuration = 12; // # of frames that a dash lasts.
+    this.regularMovespeed = 1.5; // Player's regular walkspeed / movespeed.
     this.facing = 1; // Direcrtion that the player is facing (left = -1 and right = 1).
-    this.hangtime = 3; // # of frames before gravity affects the player midair.
+    this.hangtime = 5; // # of frames before gravity affects the player midair.
     this.dashes = 20;
   }
 
@@ -115,12 +115,14 @@ class Player{
   }
 
   dash(){
+    if (frameCount - this.dashTime < this.hangtime){return;}
     print('dash');
     this.dashing = true;
-    this.dashTime = frameCount;
+    this.dashTime = frameCount+1;
     this.dashes--;
-    this.movespeed = this.regularMovespeed*7;
-    this.dashVel = createVector(0,0);
+    this.movespeed = this.regularMovespeed*6;
+
+    // Reset all velocities before dashing.
     this.naturalVel = createVector(0,0);
     this.controlledVel = createVector(0,0);
     
@@ -133,7 +135,7 @@ class Player{
 
   jump(){
     print('jump');
-    this.naturalVel.y -= 6;
+    this.naturalVel.y -= 4.5;
   }
 
   modifyVelocity(){
@@ -150,6 +152,7 @@ class Player{
     this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
+    // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
     if (this.realPos.y >= 190){this.grounded = true; this.realPos.y = 190;}
     else{this.grounded = false;}
 
@@ -161,30 +164,36 @@ class Player{
   }
 
   update(){
-    // dash deceleration
+    // airborne time
     if (!this.triggerDash){this.checkMovement();}
     if (this.triggerDash || !this.dashing){this.modifyVelocity();}
-    this.modifyPosition();
 
+    // Movement decceleration and gravitational acceleration.
     if (!this.dashing){
       if (abs(this.controlledVel.x) > 0.03){this.controlledVel.x *= 0.5;}
       else{this.controlledVel.x = 0;}
       if (abs(this.controlledVel.y) > 0.03){this.controlledVel.y *= 0.5;}
       else{this.controlledVel.y = 0;}
 
-      if (! this.grounded){
+      if (! this.grounded && frameCount - this.airborneTime > this.hangtime){
+        print(frameCount - this.airborneTime)
         if (this.naturalVel.y < 8){this.naturalVel.y += 0.3;}
-        else{this.naturalVel.y = 8;}
+        if (this.naturalVel.y > 8){this.naturalVel.y = 8;}
       }
     }
+    // Dash deceleration
+    else{
+      this.controlledVel.x *= 0.95;
+      this.controlledVel.y *= 0.95;
+    }
 
-    if (abs(this.controlledVel.x) > 0 || abs(this.controlledVel.y) > 0){this.stationary = false;}
-    else{this.stationary = true;}
-
-    if (this.dashing && frameCount - this.dashTime === this.dashDuration){this.dashing = false; this.controlledVel.x = 0; this.controlledVel.y = 0; this.dashVel.y = 0;}
+    if (this.dashing && frameCount - this.dashTime === this.dashDuration){this.dashing = false; this.controlledVel.x = 0; this.controlledVel.y = 0;}
     this.triggerDash = false;
     this.movespeed = this.regularMovespeed;
-    if (this.realPos.y < 128){print(this.dashing);print('pos:', this.realPos.y); print('vel:', this.naturalVel.y);}
+
+    this.modifyPosition();
+
+    if (this.realPos.y < 128){print(this.dashing); print('pos:', this.realPos.y); print('vel:', this.naturalVel.y + this.controlledVel.y);}
   }
 
   display(){
