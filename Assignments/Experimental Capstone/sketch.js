@@ -7,6 +7,7 @@ let player, screen1, scaling = 3.5, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  frameRate(2)
   player = new Player(2, height/(2*scaling));
   screen1 = [new NeutralTerrain(0, 5, 9, 9), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
 }
@@ -74,6 +75,7 @@ class Player{
     this.airborneTime = -999;
     this.dashDuration = 12; // # of frames that a dash lasts.
     this.regularMovespeed = 1.5; // Player's regular walkspeed / movespeed.
+    this.movespeed = 1.5; // Player's current walkspeed / movespeed.
     this.facing = 1; // Direcrtion that the player is facing (left = -1 and right = 1).
     this.hangtime = 4; // # of frames before gravity affects the player midair.
     this.dashes = 20; // # of dashes the player normally has.
@@ -106,8 +108,8 @@ class Player{
     for (let action in this.specialKeys){
       for (let keyBind of this.specialKeys[action]){
         if (key === keyBind){
-          if (action === 'dash' && this.dashes > 0){this.triggerDash = true; this.dash();}
-          else if (action === 'jump' && this.grounded && !this.triggerDash){this.grounded = false; this.jump();}
+          if (action === 'dash' && this.dashes > 0 && frameCount - this.dashTime >= this.hangtime-1){this.dash();}
+          else if (action === 'jump' && this.grounded && !this.triggerDash){this.jump();}
           break;
         }
       }
@@ -115,12 +117,12 @@ class Player{
   }
 
   dash(){
-    if (frameCount - this.dashTime < this.hangtime){return;} // Can't dash again if you already dashed within the last few frames.
-
     print('dash');
     this.dashing = true;
+    this.triggerDash = true;
     this.dashTime = frameCount+1;
     this.dashes--;
+    this.movespeed = this.regularMovespeed*6;
 
     // Reset all velocities before dashing.
     this.naturalVel = createVector(0,0);
@@ -128,33 +130,38 @@ class Player{
     
     // Position is actually updated on the next frame;
     this.checkMovement(); // It rechecks the movement keys in case the user pressed a directional key really quickly in the time between frames.
-    if (this.toMove.length === 1){this.movespeed = this.regularMovespeed*6;}
-    else if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.regularMovespeed*6,2)/2);}
-    else{this.controlledVel.x += this.facing * this.regularMovespeed*6;}
+    if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.movespeed,2)/2);}
+    else if (this.toMove.length === 0){this.controlledVel.x += this.facing * this.movespeed;}
     //this.modifyVelocity();
   }
 
   jump(){
+    // sometimes doesnt detect diagonal
     print('jump');
+    this.grounded = false;
     this.naturalVel.y -= 6;
-    this.dashing = false;
 
+    if (frameCount - this.dashTime < 6){
+      if (this.controlledVel.x !== 0){this.controlledVel.x = this.facing * this.movespeed;}
+      if (this.controlledVel.y > 0){this.controlledVel.y = this.facing * this.movespeed;}
+    }
     print(this.controlledVel.x);
 
-    /* If dash speed was converted and the dash was a diagonal (it can't realistically be an upwards diagonal) then vertical
-       dash speed is also converted to horizontal speed at a lower rate, but the jump power is weaker. */
-    if (this.controlledVel.x !== 0 && this.controlledVel.y !== 0) {
-      if (this.dashTime < 5){} // work on this
-
+    // If a downwards diagonal dash was interrupted then vertical dash speed is converted to horizontal speed, but the jump power is weaker.
+    if (this.controlledVel.x > 0 && this.controlledVel.y > 0) {
+      // 'facing' is used to check the direction which vertical speed will be converted to horizontal speed.
       this.naturalVel.x += this.facing*abs(this.controlledVel.y);
+
       this.naturalVel.y *= 0.9;
       print(this.controlledVel.y)
-      this.controlledVel.y = 0;
     }
 
     this.naturalVel.x += this.controlledVel.x * 1.2;
+    this.controlledVel.y = 0;
+    this.dashing = false;
+    this.movespeed = this.regularMovespeed;
     
-    print(this.naturalVel.x, this.naturalVel.y)
+    print(this.naturalVel.x, this.naturalVel.y);
   }
 
   modifyVelocity(){
@@ -191,8 +198,6 @@ class Player{
     if (!this.dashing){
       if (abs(this.controlledVel.x) > 0.03){this.controlledVel.x *= 0.5;}
       else{this.controlledVel.x = 0;}
-      if (abs(this.controlledVel.y) > 0.03){this.controlledVel.y *= 0.5;}
-      else{this.controlledVel.y = 0;}
       if (abs(this.naturalVel.x) > 0.03){this.naturalVel.x *= 0.95;}
       else{this.naturalVel.x = 0;}
 
@@ -210,13 +215,11 @@ class Player{
       this.controlledVel.y *= 0.95;
     }
 
-    if (this.dashing && frameCount - this.dashTime === this.dashDuration){this.dashing = false; this.controlledVel.x = 0; this.controlledVel.y = 0;}
+    if (this.dashing && frameCount - this.dashTime === this.dashDuration){this.dashing = false; this.movespeed = this.regularMovespeed; this.controlledVel.x = 0; this.controlledVel.y = 0;}
     this.triggerDash = false;
-    this.movespeed = this.regularMovespeed;
 
     this.modifyPosition();
-
-    if (this.realPos.y < 128){print(this.dashing); print('pos:', this.realPos.y); print('vel:', this.naturalVel.y + this.controlledVel.y);}
+    //if (this.realPos.y < 128){print(this.dashing); print('pos:', this.realPos.y); print('vel:', this.naturalVel.y + this.controlledVel.y);}
   }
 
   display(){
