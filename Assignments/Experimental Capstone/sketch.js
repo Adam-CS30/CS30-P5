@@ -8,7 +8,7 @@ let player, screen1, scaling = 3.5, paused = false;
 function setup() {
   createCanvas(windowWidth, windowHeight); //(320x180 real screen)
   print(width)
-  //frameRate(2)
+  frameRate(2)
   player = new Player(2, height/(2*scaling));
   screen1 = [new NeutralTerrain(0, 5, 8, 8), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
 }
@@ -21,16 +21,18 @@ function draw() {
   if (paused){pauseScreen();}
 }
 
+// All calculations for the player, terrain, camera, and other entities are done here.
 function updateAll(){
   player.update();
   for (let terrain of screen1){terrain.update();}
 }
 
+// Displays all enities and terrain using the camera.
 function displayAll(){
   push();
   scale(scaling);
   for (let terrain of screen1){terrain.display();}
-  player.display();
+  player.display(); // Player displayed last so they are the frontmost object.
   pop();
 }
 
@@ -39,45 +41,45 @@ function pauseScreen(){
   rect(0,0,width,height);
 }
 
-function keyPressed(){ //runs at the end of the frame in the time between this frame and the next (essentially an inbetween frame...)
+function keyPressed(){ //runs at the end of the frame in the time between this frame and the next (essentially an in-between frame)
+  // Checks first if it was a pause/unpause.
   if (keyCode === ESCAPE){
     print('pause triggered');
-    if (paused){paused = false;}
-    else{paused = true;}
+    paused = !paused; // Flips the pause state.
     background(220)
   }
-
+  // If it's not a pause/unpause then it checks if a movement ability was triggered.
   else{player.checkAbility();}
 }
 
 class Player{
-  // 8 x 11 hitbox
+  // 8 x 12 hitbox
   constructor(x, y){
     this.realPos = createVector(x, y); // Current position of character.
     this.oldPos = createVector(x, y); // Position of character last frame.
     this.pos = createVector(x, y); // Rounded position of character.
 
-    this.controlledVel = createVector(0, 0); // This velocity is only affected by walking/running.
-    this.naturalVel = createVector(0, 0); // This velocity is only affected by jumping/gravity.
+    // Two velocity vectors are implemented. Added together, they make up the total velocity of the player. They both have seperate ways in which they are accelerated/deccelerated.
+    this.controlledVel = createVector(0, 0); // This velocity is only affected by dashing and running. This velocity is has a sharp rate of decceleration.
+    this.naturalVel = createVector(0, 0); // This velocity is only affected by jumping and gravity. This velocity only has a value when the player is midair and has a lower rate of decceleration.
 
-    this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]};
-    this.specialKeys = {'dash':['j', 'e'], 'jump':['k', ' ']};
+    this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]}; // Keys the player can press for directional movement.
+    this.specialKeys = {'dash':['j', 'e'], 'jump':['k', ' ']}; // Keys that the player can press for special movement.
     this.toMove = []; // A list that containins the directions that the player wishes to move each frame.
 
-    this.triggerJump = false;
-    this.triggerDash = false;
-    this.dashing = false;
-    this.grounded = false;
+    this.triggerDash = false; // Is true when a dash is triggered and is reset to false near the end of every frame.
+    this.dashing = false; // Whether the player is currently dashing.
+    this.grounded = false; // Whether the player is on the ground.
 
 	  this.stationary = true;
     this.alive = true; // Self-explanatory
 
-    this.dashTime = -999; // # of frames since the last dash was triggered.
-    this.airborneTime = -999;
+    this.dashTime = -999; // The frame at which the last dash was triggered.
+    this.airborneTime = -999; // The frame at which the player is no longer grounded.
     this.dashDuration = 12; // # of frames that a dash lasts.
     this.regularMovespeed = 1.5; // Player's regular walkspeed / movespeed.
     this.movespeed = 1.5; // Player's current walkspeed / movespeed.
-    this.facing = 1; // Direcrtion that the player is facing (left = -1 and right = 1).
+    this.facing = 1; // Direction that the player is facing (left = -1 and right = 1).
     this.hangtime = 4; // # of frames before gravity affects the player midair.
     this.dashes = 2; // # of dashes the player normally has.
   }
@@ -110,18 +112,20 @@ class Player{
       for (let keyBind of this.specialKeys[action]){
         if (key === keyBind){
           if (action === 'dash' && this.dashes > 0 && frameCount - this.dashTime >= this.hangtime-1){this.dash();}
-          else if (action === 'jump' && this.grounded && !this.triggerDash){this.jump();}
+          else if (action === 'jump' && this.grounded){this.jump();}
           break;
         }
       }
     }
   }
 
+  // Keep in mind the dash() and jump() can only trigger at end of a frame, after the character has been already displayed, but before the calculations of the next frame. They sort of trigger in between frames.
+  // This function 
   dash(){
     print('dash');
     this.dashing = true;
     this.triggerDash = true;
-    this.dashTime = frameCount+1;
+    this.dashTime = frameCount+1; // 
     this.dashes--;
     this.movespeed = this.regularMovespeed*6;
 
@@ -133,7 +137,7 @@ class Player{
     this.checkMovement(); // It rechecks the movement keys in case the user pressed a directional key really quickly in the time between frames.
     if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.movespeed,2)/2);}
     else if (this.toMove.length === 0){this.controlledVel.x += this.facing * this.movespeed;}
-    //this.modifyVelocity();
+    this.move();
   }
 
   jump(){
@@ -146,18 +150,19 @@ class Player{
     // This is to make getting the maximum speed from a dash interruption easier/more consistent.
     if (frameCount - this.dashTime < 6 && this.controlledVel.x !== 0){this.controlledVel.x = this.facing * this.movespeed;}
 
-    // If a downwards diagonal dash was interrupted then vertical dash speed is converted into some extra horizontal speed, but the jump power is weaker.
+    // If a downwards diagonal dash was interrupted then vertical dash speed is converted into some extra horizontal speed and your original horizontal dash speed is slightly boosted, but the jump power is weaker.
+    // You travel approximately 1.3x the distance using a diagonal dash interruption compared to horizontal dashing.
     if (abs(this.controlledVel.x) > 0 && this.controlledVel.y > 0) {
+      this.controlledVel.x *= 1.2; // Interrupting a diagonal dash grants you a small boost to your original horizontal speed.
       // This is the same check for if the dash was interrupted in the first half.
       if (frameCount - this.dashTime < 6){this.controlledVel.y = this.facing * this.movespeed;}
 
       // 'facing' is used to check the direction which vertical speed will be converted to horizontal speed.
-      this.naturalVel.x += this.facing * 0.8 * abs(this.controlledVel.y);
-
-      this.naturalVel.y *= 0.85;
+      this.naturalVel.x += this.facing * 0.9 * abs(this.controlledVel.y);
+      this.naturalVel.y *= 0.85; // Jump power is reduced.
     }
 
-    this.naturalVel.x += this.controlledVel.x * 1.2;
+    this.naturalVel.x += this.controlledVel.x;
     this.controlledVel.y = 0;
     this.dashing = false;
     this.movespeed = this.regularMovespeed;
@@ -177,10 +182,11 @@ class Player{
 
   // Applies decceleration and gravitational acceleration based on conditions.
   modifyVelocity(){
-
+    // Acceleration/decceleration applied if player not dashing:
     if (!this.dashing){
+      // Horizontal controlled velocity is halfed every frame where player isn't dashing.
       if (abs(this.controlledVel.x) > 0.03){this.controlledVel.x *= 0.5;}
-      else{this.controlledVel.x = 0;}
+      else{this.controlledVel.x = 0;} // If horizontal controlled velocity is low enough, it's just set to 0.
       if (abs(this.naturalVel.x) > 0.03){this.naturalVel.x *= 0.95;}
       else{this.naturalVel.x = 0;}
 
@@ -193,7 +199,7 @@ class Player{
         if (this.naturalVel.y > 8){this.naturalVel.y = 8;}
       }
     }
-    // There is a little decceleration during a dash.
+    // Acceleration/decceleration applied if player is dashing:
     else{
       this.controlledVel.x *= 0.95;
       this.controlledVel.y *= 0.95;
@@ -219,7 +225,7 @@ class Player{
   update(){
     // airborne time
     if (!this.triggerDash){this.checkMovement();}
-    if (!this.dashing || this.triggerDash){this.move();}
+    if (!this.dashing){this.move();}
 
     // Movement decceleration and gravitational acceleration are applied as needed.
     this.modifyVelocity()
