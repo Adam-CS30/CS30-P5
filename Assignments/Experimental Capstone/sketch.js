@@ -7,10 +7,10 @@ let player, screen1, scaling = 3.5, paused = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight); //(320x180 real screen)
-  print(width)
-  frameRate(2)
+  //print(width)
+  //frameRate(2)
   player = new Player(2, height/(2*scaling));
-  screen1 = [new NeutralTerrain(0, 5, 8, 8), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
+  screen1 = [new NeutralTerrain(100, 185, 8, 8), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
 }
 
 function draw() {
@@ -58,6 +58,8 @@ class Player{
     this.realPos = createVector(x, y); // Current position of character.
     this.oldPos = createVector(x, y); // Position of character last frame.
     this.pos = createVector(x, y); // Rounded position of character.
+    this.sX = 8;
+    this.sY = 11;
 
     // Two velocity vectors are implemented. Added together, they make up the total velocity of the player. They both have seperate ways in which they are accelerated/deccelerated.
     this.controlledVel = createVector(0, 0); // This velocity is only affected by dashing and running. This velocity is has a sharp rate of decceleration.
@@ -211,6 +213,7 @@ class Player{
     this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
+    // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
     if (this.realPos.y >= 190){this.grounded = true; this.realPos.y = 190; this.dashes = 2; this.airborneTime = frameCount;}
     else{this.grounded = false;}
@@ -220,6 +223,22 @@ class Player{
 
     this.pos.x = round(this.realPos.x);
     this.pos.y = round(this.realPos.y);
+    this.checkCollision()
+  }
+
+  checkCollision(){
+    let rayOrigin = 0
+    fill(255)
+    noStroke()
+    rect(mouseX, mouseY, this.sX*scaling, this.sY*scaling);
+    stroke(255, 50, 50);
+    strokeWeight(3);
+
+    if ((mouseX - this.realPos.x*scaling) * (mouseY - this.realPos.y*scaling) > 0){rayOrigin = 1}
+    let offSetX = rayOrigin * this.sX * scaling
+
+    line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, mouseX + offSetX, mouseY)
+    line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, mouseX+this.sX*scaling - offSetX, mouseY+this.sY*scaling)
   }
 
   update(){
@@ -241,7 +260,7 @@ class Player{
     noStroke();
     if (this.dashing){fill(50,180,255);}
     else{fill(100,200,100);}
-    rect(this.realPos.x, this.realPos.y, 8, 11); // real hitbox (fake would be ~10x17)
+    rect(this.realPos.x, this.realPos.y, this.sX, this.sY); // real hitbox (fake would be ~10x17)
   }
 }
 
@@ -278,4 +297,10 @@ class NeutralTerrain extends Terrain{
     player.dashes = 2;
     if(false){}
   }
+}
+
+
+// Collision Function:
+function collision(){
+  // raycast from old pos (corners) to new pos (corners)
 }
