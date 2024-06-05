@@ -3,14 +3,17 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, screen1, scaling = 3.5, paused = false;
+let player, screen = 0, scaling = 3.5, tileSide = 8, tiledWidth = 40, tiledHeight = 22; paused = false;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight); //(320x180 real screen)
+  if (windowWidth/(tiledWidth*tileSide) < windowHeight/(tiledHeight*tileSide)){scaling = windowWidth/(tiledWidth*tileSide);}
+  else{scaling = windowHeight/(tiledHeight*tileSide);}
+
+  createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
   //print(width)
   //frameRate(2)
   player = new Player(2, height/(2*scaling));
-  screen1 = [new NeutralTerrain(100, 185, 8, 8), new NeutralTerrain(2, 4, 1, 1), new NeutralTerrain(4, 4, 1, 1)];
+  screen = [new NeutralTerrain(15, 18), new NeutralTerrain(0, 0), new NeutralTerrain(1, 1)];
 }
 
 function draw() {
@@ -24,16 +27,20 @@ function draw() {
 // All calculations for the player, terrain, camera, and other entities are done here.
 function updateAll(){
   player.update();
-  for (let terrain of screen1){terrain.update();}
+  for (let terrain of screen){terrain.update();}
 }
 
 // Displays all enities and terrain using the camera.
 function displayAll(){
   push();
   scale(scaling);
-  for (let terrain of screen1){terrain.display();}
+  for (let terrain of screen){terrain.display();}
   player.display(); // Player displayed last so they are the frontmost object.
   pop();
+}
+
+function loadScreen(){
+  
 }
 
 function pauseScreen(){
@@ -59,7 +66,7 @@ class Player{
     this.oldPos = createVector(x, y); // Position of character last frame.
     this.pos = createVector(x, y); // Rounded position of character.
     this.sX = 8;
-    this.sY = 11;
+    this.sY = 7;
 
     // Two velocity vectors are implemented. Added together, they make up the total velocity of the player. They both have seperate ways in which they are accelerated/deccelerated.
     this.controlledVel = createVector(0, 0); // This velocity is only affected by dashing and running. This velocity is has a sharp rate of decceleration.
@@ -79,11 +86,12 @@ class Player{
     this.dashTime = -999; // The frame at which the last dash was triggered.
     this.airborneTime = -999; // The frame at which the player is no longer grounded.
     this.dashDuration = 12; // # of frames that a dash lasts.
-    this.regularMovespeed = 1.5; // Player's regular walkspeed / movespeed.
-    this.movespeed = 1.5; // Player's current walkspeed / movespeed.
+    this.regularMovespeed = 1.2; // Player's regular walkspeed / movespeed.
+    this.movespeed = this.regularMovespeed; // Player's current walkspeed / movespeed.
     this.facing = 1; // Direction that the player is facing (left = -1 and right = 1).
     this.hangtime = 4; // # of frames before gravity affects the player midair.
-    this.dashes = 2; // # of dashes the player normally has.
+    this.regularDashes = 1
+    this.dashes = 1; // # of dashes the player normally has.
   }
 
   checkMovement(){
@@ -129,7 +137,7 @@ class Player{
     this.triggerDash = true;
     this.dashTime = frameCount+1; // 
     this.dashes--;
-    this.movespeed = this.regularMovespeed*6;
+    this.movespeed = this.regularMovespeed*5;
 
     // Reset all velocities before dashing.
     this.naturalVel = createVector(0,0);
@@ -139,14 +147,14 @@ class Player{
     this.checkMovement(); // It rechecks the movement keys in case the user pressed a directional key really quickly in the time between frames.
     if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.movespeed,2)/2);}
     else if (this.toMove.length === 0){this.controlledVel.x += this.facing * this.movespeed;}
-    this.move();
+    this.move(1);
   }
 
   jump(){
     // sometimes doesnt detect diagonal
     print('jump');
     this.grounded = false;
-    this.naturalVel.y -= 6;
+    this.naturalVel.y -= this.regularMovespeed*4;
 
     // If a dash was interrupted in the first half of the dash, the horizontal velocity converted is based off the initial horizontal velocity of the dash.
     // This is to make getting the maximum speed from a dash interruption easier/more consistent.
@@ -164,7 +172,8 @@ class Player{
       this.naturalVel.y *= 0.85; // Jump power is reduced.
     }
 
-    this.naturalVel.x += this.controlledVel.x;
+    if (this.dashing){this.naturalVel.x += this.controlledVel.x; this.interrupted = true;}
+    //else if (this.toMove.length !== 0){this.naturalVel.x += 0.2*this.controlledVel.x; this.interrupted = false;}
     this.controlledVel.y = 0;
     this.dashing = false;
     this.movespeed = this.regularMovespeed;
@@ -173,10 +182,10 @@ class Player{
   }
 
   // This function is responsible for directional movement based on player keypresses.
-  move(){
+  move(runMultiplier){
     for (let action of this.toMove){
-      if (action === 'right') {this.controlledVel.x += this.movespeed; this.facing = 1;}
-      else if (action === 'left') {this.controlledVel.x -= this.movespeed; this.facing = -1;}
+      if (action === 'right') {this.controlledVel.x += this.movespeed*runMultiplier; this.facing = 1;}
+      else if (action === 'left') {this.controlledVel.x -= this.movespeed*runMultiplier; this.facing = -1;}
       else if (action === 'up' && this.triggerDash) {this.controlledVel.y -= this.movespeed;}
       else if (action === 'down' && this.triggerDash) {this.controlledVel.y += this.movespeed;}
     }
@@ -189,16 +198,17 @@ class Player{
       // Horizontal controlled velocity is halfed every frame where player isn't dashing.
       if (abs(this.controlledVel.x) > 0.03){this.controlledVel.x *= 0.5;}
       else{this.controlledVel.x = 0;} // If horizontal controlled velocity is low enough, it's just set to 0.
-      if (abs(this.naturalVel.x) > 0.03){this.naturalVel.x *= 0.95;}
+      if (abs(this.naturalVel.x) > 0.03){
+        this.naturalVel.x *= 0.95;
+        //if ((!this.interrupted && this.toMove.length === 0) || this.grounded){this.naturalVel.x = 0;}
+      }
       else{this.naturalVel.x = 0;}
-
-      if (this.grounded) {this.naturalVel.x = 0;}
 
       // if already falling or hangtime is out
       if ((!this.grounded && abs(this.naturalVel.y) > 0.00001) || (frameCount - this.dashTime >= this.dashDuration + this.hangtime && frameCount - this.airborneTime > this.hangtime)){
         //print(frameCount - this.airborneTime);
-        if (this.naturalVel.y < 8){this.naturalVel.y += 0.3;}
-        if (this.naturalVel.y > 8){this.naturalVel.y = 8;}
+        if (this.naturalVel.y < 5){this.naturalVel.y += 0.28;}
+        if (this.naturalVel.y > 5){this.naturalVel.y = 5;}
       }
     }
     // Acceleration/decceleration applied if player is dashing:
@@ -215,7 +225,7 @@ class Player{
     
     // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
-    if (this.realPos.y >= 190){this.grounded = true; this.realPos.y = 190; this.dashes = 2; this.airborneTime = frameCount;}
+    if (this.realPos.y >= 150){this.grounded = true; this.realPos.y = 150; this.dashes = this.regularDashes; this.airborneTime = frameCount;}
     else{this.grounded = false;}
 
     this.oldPos.x = this.pos.x;
@@ -227,24 +237,25 @@ class Player{
   }
 
   checkCollision(){
-    let rayOrigin = 0
-    fill(255)
-    noStroke()
+    let rayOrigin = 0;
+    fill(255);
+    noStroke();
     rect(mouseX, mouseY, this.sX*scaling, this.sY*scaling);
     stroke(255, 50, 50);
     strokeWeight(3);
 
-    if ((mouseX - this.realPos.x*scaling) * (mouseY - this.realPos.y*scaling) > 0){rayOrigin = 1}
-    let offSetX = rayOrigin * this.sX * scaling
+    if ((mouseX - this.realPos.x*scaling) * (mouseY - this.realPos.y*scaling) > 0){rayOrigin = 1;}
+    let offSetX = rayOrigin * this.sX * scaling;
 
-    line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, mouseX + offSetX, mouseY)
-    line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, mouseX+this.sX*scaling - offSetX, mouseY+this.sY*scaling)
+    line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, mouseX + offSetX, mouseY);
+    line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, mouseX+this.sX*scaling - offSetX, mouseY+this.sY*scaling);
+    //line((this.realPos.x + this.sX/2)*scaling, (this.realPos.y+ this.sY/2)*scaling, mouseX + this.sX/2*scaling, mouseY + this.sY/2*scaling)
   }
 
   update(){
     // airborne time
     if (!this.triggerDash){this.checkMovement();}
-    if (!this.dashing){this.move();}
+    if (!this.dashing){this.move(1.5);}
 
     // Movement decceleration and gravitational acceleration are applied as needed.
     this.modifyVelocity()
@@ -260,7 +271,7 @@ class Player{
     noStroke();
     if (this.dashing){fill(50,180,255);}
     else{fill(100,200,100);}
-    rect(this.realPos.x, this.realPos.y, this.sX, this.sY); // real hitbox (fake would be ~10x17)
+    rect(this.pos.x, this.pos.y, this.sX, this.sY); // real hitbox (fake would be ~10x17)
   }
 }
 
@@ -272,8 +283,8 @@ class Terrain{
   }
 
   checkCollision(){
-    if (this.x < player.pos.x && player.pos.x < this.x + this.sX &&
-       this.y < player.pos.y && player.pos.y < this.y + this.sY) {this.onCollision();}
+    if (this.x <= player.pos.x && player.pos.x <= this.x + this.sX &&
+       this.y <= player.pos.y && player.pos.y <= this.y + this.sY) {this.onCollision();}
   }
 
   update(){
@@ -288,8 +299,8 @@ class Terrain{
 }
 
 class NeutralTerrain extends Terrain{
-  constructor(x, y, sizeX, sizeY){
-    super(x, y, sizeX, sizeY); 
+  constructor(x, y){
+    super(x*tileSide, y*tileSide, tileSide, tileSide); 
   }
 
   onCollision(){
@@ -298,7 +309,6 @@ class NeutralTerrain extends Terrain{
     if(false){}
   }
 }
-
 
 // Collision Function:
 function collision(){
