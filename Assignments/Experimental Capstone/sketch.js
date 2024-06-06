@@ -65,8 +65,8 @@ class Player{
     this.realPos = createVector(x, y); // Current position of character.
     this.oldPos = createVector(x, y); // Position of character last frame.
     this.pos = createVector(x, y); // Rounded position of character.
-    this.sX = 8;
-    this.sY = 7;
+    this.sX = 5;
+    this.sY = 5;
 
     // Two velocity vectors are implemented. Added together, they make up the total velocity of the player. They both have seperate ways in which they are accelerated/deccelerated.
     this.controlledVel = createVector(0, 0); // This velocity is only affected by dashing and running. This velocity is has a sharp rate of decceleration.
@@ -76,17 +76,16 @@ class Player{
     this.specialKeys = {'dash':['j', 'e'], 'jump':['k', ' ']}; // Keys that the player can press for special movement.
     this.toMove = []; // A list that containins the directions that the player wishes to move each frame.
 
-    this.triggerDash = false; // Is true when a dash is triggered and is reset to false near the end of every frame.
+    this.triggerDash = false; // Is true when a dash is triggered.
+    this.triggerJump = false; // Is true when a jump is triggered.
     this.dashing = false; // Whether the player is currently dashing.
-    this.grounded = false; // Whether the player is on the ground.
-
-	  this.stationary = true;
     this.alive = true; // Self-explanatory
+    this.state = 0; // The player's current state (airborne = 0, sliding = 1, grounded = 2).
 
     this.dashTime = -999; // The frame at which the last dash was triggered.
     this.airborneTime = -999; // The frame at which the player is no longer grounded.
     this.dashDuration = 12; // # of frames that a dash lasts.
-    this.regularMovespeed = 1.2; // Player's regular walkspeed / movespeed.
+    this.regularMovespeed = 1; // Player's regular walkspeed / movespeed.
     this.movespeed = this.regularMovespeed; // Player's current walkspeed / movespeed.
     this.facing = 1; // Direction that the player is facing (left = -1 and right = 1).
     this.hangtime = 4; // # of frames before gravity affects the player midair.
@@ -121,8 +120,8 @@ class Player{
     for (let action in this.specialKeys){
       for (let keyBind of this.specialKeys[action]){
         if (key === keyBind){
-          if (action === 'dash' && this.dashes > 0 && frameCount - this.dashTime >= this.hangtime-1){this.dash();}
-          else if (action === 'jump' && this.grounded){this.jump();}
+          if (action === 'dash' && this.dashes > 0 && frameCount - this.dashTime >= this.hangtime-1){this.triggerDash = true;}
+          else if (action === 'jump' && this.state > 0){this.triggerJump = true;}
           break;
         }
       }
@@ -137,43 +136,44 @@ class Player{
     this.triggerDash = true;
     this.dashTime = frameCount+1; // 
     this.dashes--;
-    this.movespeed = this.regularMovespeed*5;
+    this.movespeed = this.regularMovespeed*4.8;
 
     // Reset all velocities before dashing.
     this.naturalVel = createVector(0,0);
     this.controlledVel = createVector(0,0);
     
-    // Position is actually updated on the next frame;
-    this.checkMovement(); // It rechecks the movement keys in case the user pressed a directional key really quickly in the time between frames.
     if (this.toMove.length === 2){this.movespeed = sqrt(pow(this.movespeed,2)/2);}
     else if (this.toMove.length === 0){this.controlledVel.x += this.facing * this.movespeed;}
     this.move(1);
   }
 
   jump(){
-    // sometimes doesnt detect diagonal
     print('jump');
-    this.grounded = false;
+    this.state = 0;
     this.naturalVel.y -= this.regularMovespeed*4;
 
     // If a dash was interrupted in the first half of the dash, the horizontal velocity converted is based off the initial horizontal velocity of the dash.
     // This is to make getting the maximum speed from a dash interruption easier/more consistent.
-    if (frameCount - this.dashTime < 6 && this.controlledVel.x !== 0){this.controlledVel.x = this.facing * this.movespeed;}
+    if (frameCount - this.dashTime < 6 && this.controlledVel.x !== 0){this.controlledVel.x = this.facing * (this.movespeed);}
 
-    // If a downwards diagonal dash was interrupted then vertical dash speed is converted into some extra horizontal speed and your original horizontal dash speed is slightly boosted, but the jump power is weaker.
-    // You travel approximately 1.3x the distance using a diagonal dash interruption compared to horizontal dashing.
+    // This function handles the case of an upwards diagonal dash interruption by slightly decreasing the initial horizontal velocity.
+    // It's basically like a horizontal dash interruption but weaker.
+    if (this.dashing && this.controlledVel.y < 0 && this.controlledVel.x !== 0){this.controlledVel.x *= 0.8}
+
+    // If a downwards diagonal dash was interrupted then vertical dash speed is converted into some extra horizontal speed and your
+    // original horizontal dash speed is slightly boosted, but the jump power is weaker.
     if (abs(this.controlledVel.x) > 0 && this.controlledVel.y > 0) {
-      this.controlledVel.x *= 1.2; // Interrupting a diagonal dash grants you a small boost to your original horizontal speed.
+      this.controlledVel.x *= 1.25; // Interrupting a diagonal dash grants you a small boost to your original horizontal speed.
       // This is the same check for if the dash was interrupted in the first half.
       if (frameCount - this.dashTime < 6){this.controlledVel.y = this.facing * this.movespeed;}
 
       // 'facing' is used to check the direction which vertical speed will be converted to horizontal speed.
-      this.naturalVel.x += this.facing * 0.9 * abs(this.controlledVel.y);
-      this.naturalVel.y *= 0.85; // Jump power is reduced.
+      this.naturalVel.x += this.facing * abs(this.controlledVel.y);
+      this.naturalVel.y *= 0.9; // Jump power is reduced.
     }
 
     if (this.dashing){this.naturalVel.x += this.controlledVel.x; this.interrupted = true;}
-    //else if (this.toMove.length !== 0){this.naturalVel.x += 0.2*this.controlledVel.x; this.interrupted = false;}
+    else if (this.toMove.length !== 0){this.naturalVel.x += 0.8*this.controlledVel.x; this.interrupted = false;}
     this.controlledVel.y = 0;
     this.dashing = false;
     this.movespeed = this.regularMovespeed;
@@ -200,14 +200,14 @@ class Player{
       else{this.controlledVel.x = 0;} // If horizontal controlled velocity is low enough, it's just set to 0.
       if (abs(this.naturalVel.x) > 0.03){
         this.naturalVel.x *= 0.95;
-        //if ((!this.interrupted && this.toMove.length === 0) || this.grounded){this.naturalVel.x = 0;}
+        if ((!this.interrupted && this.toMove.length === 0) || this.state > 0){this.naturalVel.x = 0;}
       }
       else{this.naturalVel.x = 0;}
 
       // if already falling or hangtime is out
-      if ((!this.grounded && abs(this.naturalVel.y) > 0.00001) || (frameCount - this.dashTime >= this.dashDuration + this.hangtime && frameCount - this.airborneTime > this.hangtime)){
+      if ((this.state === 0 && abs(this.naturalVel.y) > 0.00001) || (frameCount - this.dashTime >= this.dashDuration + this.hangtime && frameCount - this.airborneTime > this.hangtime)){
         //print(frameCount - this.airborneTime);
-        if (this.naturalVel.y < 5){this.naturalVel.y += 0.28;}
+        if (this.naturalVel.y < 5){this.naturalVel.y += 0.27;}
         if (this.naturalVel.y > 5){this.naturalVel.y = 5;}
       }
     }
@@ -219,42 +219,51 @@ class Player{
   }
 
   modifyPosition(){
-    if (this.grounded){this.naturalVel.y = 0;}
+    if (this.state === 2){this.naturalVel.y = 0;}
     this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
     // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
-    if (this.realPos.y >= 150){this.grounded = true; this.realPos.y = 150; this.dashes = this.regularDashes; this.airborneTime = frameCount;}
-    else{this.grounded = false;}
+    if (this.realPos.y >= 150){this.state = 2; this.realPos.y = 150; this.dashes = this.regularDashes; this.airborneTime = frameCount;}
+    else{this.state = 0;}
 
     this.oldPos.x = this.pos.x;
     this.oldPos.y = this.pos.y;
 
     this.pos.x = round(this.realPos.x);
     this.pos.y = round(this.realPos.y);
-    this.checkCollision()
+
+    this.checkCollision();
   }
 
   checkCollision(){
     let rayOrigin = 0;
     fill(255);
     noStroke();
-    rect(mouseX, mouseY, this.sX*scaling, this.sY*scaling);
+    rect(this.oldPos.x*scaling, this.oldPos.y*scaling, this.sX*scaling, this.sY*scaling);
     stroke(255, 50, 50);
     strokeWeight(3);
 
-    if ((mouseX - this.realPos.x*scaling) * (mouseY - this.realPos.y*scaling) > 0){rayOrigin = 1;}
+    if ((this.oldPos.x - this.pos.x) * (this.oldPos.y - this.pos.y) > 0){rayOrigin = 1;}
     let offSetX = rayOrigin * this.sX * scaling;
 
-    line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, mouseX + offSetX, mouseY);
-    line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, mouseX+this.sX*scaling - offSetX, mouseY+this.sY*scaling);
-    //line((this.realPos.x + this.sX/2)*scaling, (this.realPos.y+ this.sY/2)*scaling, mouseX + this.sX/2*scaling, mouseY + this.sY/2*scaling)
+    line(this.pos.x*scaling + offSetX, this.pos.y*scaling, this.oldPos.x*scaling + offSetX, this.oldPos.y*scaling);
+    line((this.pos.x+this.sX)*scaling - offSetX, (this.pos.y+this.sY)*scaling, (this.oldPos.x+this.sX)*scaling - offSetX, (this.oldPos.y+this.sY)*scaling);
+    line((this.pos.x + this.sX/2)*scaling, (this.pos.y+ this.sY/2)*scaling, (this.oldPos.x + this.sX/2)*scaling, (this.oldPos.y + this.sY/2)*scaling);
+    
+    this.currentCollision(this.pos.y-this.oldPos.y, this.pos.x-this.oldPos.x);
+  }
+
+  currentCollision(changeY, changeX){
+    // trace each line while checking each pixel on it or smthn
   }
 
   update(){
     // airborne time
-    if (!this.triggerDash){this.checkMovement();}
+    this.checkMovement();
+    if (this.triggerDash){this.dash(); this.triggerDash = false;}
+    if (this.triggerJump){this.jump(); this.triggerJump = false;}
     if (!this.dashing){this.move(1.5);}
 
     // Movement decceleration and gravitational acceleration are applied as needed.
