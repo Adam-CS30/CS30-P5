@@ -3,20 +3,31 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, screen = 0, scaling = 3.5, tileSide = 8, tiledWidth = 40, tiledHeight = 22; paused = false;
+let player, screens = [], currentScreen = 0, scaling = 0, paused = false;
+const tileSide = 8, tiledWidth = 40, tiledHeight = 22;
 
-function setup() {
+function preload(){
+  const basePath = "screens/screen"
+  for (let i = 0; i <= 0; i++){
+    let path = basePath + i.toString() + '.txt';
+    print(path)
+    loadStrings(path, loadScreen);
+  }
+}
+
+function setup(){
   if (windowWidth/(tiledWidth*tileSide) < windowHeight/(tiledHeight*tileSide)){scaling = windowWidth/(tiledWidth*tileSide);}
   else{scaling = windowHeight/(tiledHeight*tileSide);}
+  scaling -= scaling % (1/8);
 
   createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
   //print(width)
   //frameRate(2)
   player = new Player(2, height/(2*scaling));
-  screen = [new NeutralTerrain(15, 18), new NeutralTerrain(0, 0), new NeutralTerrain(1, 1)];
+  currentScreen = screens[0];
 }
 
-function draw() {
+function draw(){
   background(20, 40, 60);
 
   if (!paused){updateAll();}
@@ -27,20 +38,30 @@ function draw() {
 // All calculations for the player, terrain, camera, and other entities are done here.
 function updateAll(){
   player.update();
-  for (let terrain of screen){terrain.update();}
+  for (let terrain of currentScreen){terrain.update();}
 }
 
 // Displays all enities and terrain using the camera.
 function displayAll(){
   push();
   scale(scaling);
-  for (let terrain of screen){terrain.display();}
+  for (let terrain of currentScreen){terrain.display();}
   player.display(); // Player displayed last so they are the frontmost object.
   pop();
 }
 
-function loadScreen(){
-  
+function loadScreen(data){
+  let screen = [];
+  for (let y = 0; y < tiledHeight; y++){
+    screen.push([])
+    for (let x = 0; x < tiledWidth; x++){
+      screen[y].push(0)
+    }
+  }
+  let spawn = data[2];
+  print(screen);
+
+  //screens.push(screen);
 }
 
 function pauseScreen(){
