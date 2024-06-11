@@ -72,24 +72,40 @@ function loadScreens(data){
   }
   
   for (let item of data){
-    let type = item.substring(0,item.indexOf(':'))
+    let type = item.substring(0,item.indexOf(':')); // the type of tile.
+    item = item.replace(/\s/g, "").substring(item.indexOf('(')); // rest of the line excluding spaces.
+
     switch (type){
       case 'spawn':
         playerSpawns.push(createVector(int(item.substring(1+item.indexOf('('), item.indexOf(','))), int(item.substring(1+item.indexOf(','), item.indexOf(')')))));
         break;
       case 'neutral':
         type = 1;
-        
+        // for loop to go through entire line
+        let i = 0;
+        while (item.indexOf(')', i+1) !== -1){
+          let currentItem = item.substring(item.indexOf('(')+1, item.indexOf(')'));
+          let x = int(currentItem.substring(0, currentItem.indexOf(',')));
+          let y = int(currentItem.substring(1+currentItem.indexOf(','), currentItem.indexOf(',',currentItem.indexOf(',')+1)));
+          let sX = int(currentItem.substring(1+currentItem.indexOf(',',currentItem.indexOf(',')+1), currentItem.indexOf(',',currentItem.indexOf(',',currentItem.indexOf(',')+1)+1)));
+          let sY = int(currentItem.substring(1+currentItem.indexOf(',',currentItem.indexOf(',',currentItem.indexOf(',')+1)+1)))
+
+
+          screen.push(new NeutralTerrain(int(item.substring(1+item.indexOf('('), item.indexOf(','))), ))
+
+          i = item.indexOf(')', i+1);
+        }
         break;
       case 'spikes':
         type = 2;
+        // for loop to go through entire line
         break;
 
     }
   }
   
-  let spawn = data[2];
-  print(screen);
+  screens.push(screen);
+  //print(screen);
 
   //screens.push(screen);
 }
@@ -100,7 +116,6 @@ function pauseScreen(){
 }
 
 function spawnPlayer(){
-  controlpause = true;
   spawnFrame = countedFrames;
   player = new Player(playerSpawns[currentScreen].x*tileSide, tiledHeight*tileSide);
 }
@@ -110,7 +125,7 @@ function keyPressed(){ //runs at the end of the frame in the time between this f
   if (keyCode === ESCAPE){
     print('pause triggered');
     paused = !paused; // Flips the pause state.
-    if (paused){controlpause = true}
+    if (paused){controlpause = true;}
     background(220)
   }
   // If it's not a pause/unpause then it checks if a movement ability was triggered.
@@ -371,8 +386,8 @@ class Terrain{
 }
 
 class NeutralTerrain extends Terrain{
-  constructor(x, y){
-    super(x*tileSide, y*tileSide, tileSide, tileSide); 
+  constructor(x, y, sizeX, sizeY){
+    super(x*tileSide, y*tileSide, sizeX*tileSide, sizeY*tileSide); 
   }
 
   onCollision(){
