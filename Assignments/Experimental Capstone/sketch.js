@@ -3,7 +3,10 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, screens = [], currentScreen = 0, scaling = 0, paused = false;
+let player, screens = [], tiledScreens = [], playerSpawns = [], currentScreen = 0, spawnFrame = 0;
+let scaling; // How much the entire canvas is scaled.
+let paused = false, controlpause = true; // Whether the game is paused and whether controlling the player is paused respectively.
+let countedFrames = 0; // Like frameCount but only counts unpaused frames.
 const tileSide = 8, tiledWidth = 40, tiledHeight = 22;
 
 function preload(){
@@ -11,7 +14,7 @@ function preload(){
   for (let i = 0; i <= 0; i++){
     let path = basePath + i.toString() + '.txt';
     print(path)
-    loadStrings(path, loadScreen);
+    loadStrings(path, loadScreens);
   }
 }
 
@@ -21,43 +24,70 @@ function setup(){
   scaling -= scaling % (1/8);
 
   createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
-  //print(width)
   //frameRate(2)
-  player = new Player(2, height/(2*scaling));
-  currentScreen = screens[0];
+  spawnPlayer();
 }
 
 function draw(){
   background(20, 40, 60);
+  if (frameCount > 30){
+    if (!paused){
+      countedFrames++;
+      if(!controlpause){player.update();}
+      else{
+        player.spawnRise();
+        if (countedFrames - spawnFrame === 20){controlpause = false; player.realPos.y = playerSpawns[currentScreen].y*tileSide;}
+      }
+    }
 
-  if (!paused){updateAll();}
-  displayAll();
-  if (paused){pauseScreen();}
+    displayAll();
+    if (paused){pauseScreen();}
+  }
 }
 
 // All calculations for the player, terrain, camera, and other entities are done here.
 function updateAll(){
+  print(1)
   player.update();
-  for (let terrain of currentScreen){terrain.update();}
+  for (let terrain of screens[currentScreen]){terrain.update();}
 }
 
 // Displays all enities and terrain using the camera.
 function displayAll(){
   push();
   scale(scaling);
-  for (let terrain of currentScreen){terrain.display();}
+  //for (let terrain of screens[currentScreen]){terrain.display();}
   player.display(); // Player displayed last so they are the frontmost object.
   pop();
 }
 
-function loadScreen(data){
+function loadScreens(data){
   let screen = [];
+
   for (let y = 0; y < tiledHeight; y++){
     screen.push([])
     for (let x = 0; x < tiledWidth; x++){
       screen[y].push(0)
     }
   }
+  
+  for (let item of data){
+    let type = item.substring(0,item.indexOf(':'))
+    switch (type){
+      case 'spawn':
+        playerSpawns.push(createVector(int(item.substring(1+item.indexOf('('), item.indexOf(','))), int(item.substring(1+item.indexOf(','), item.indexOf(')')))));
+        break;
+      case 'neutral':
+        type = 1;
+        
+        break;
+      case 'spikes':
+        type = 2;
+        break;
+
+    }
+  }
+  
   let spawn = data[2];
   print(screen);
 
@@ -69,15 +99,22 @@ function pauseScreen(){
   rect(0,0,width,height);
 }
 
+function spawnPlayer(){
+  controlpause = true;
+  spawnFrame = countedFrames;
+  player = new Player(playerSpawns[currentScreen].x*tileSide, tiledHeight*tileSide);
+}
+
 function keyPressed(){ //runs at the end of the frame in the time between this frame and the next (essentially an in-between frame)
   // Checks first if it was a pause/unpause.
   if (keyCode === ESCAPE){
     print('pause triggered');
     paused = !paused; // Flips the pause state.
+    if (paused){controlpause = true}
     background(220)
   }
   // If it's not a pause/unpause then it checks if a movement ability was triggered.
-  else{player.checkAbility();}
+  else if (!controlpause){player.checkAbility();}
 }
 
 class Player{
@@ -114,6 +151,11 @@ class Player{
     this.dashes = 1; // # of dashes the player normally has.
   }
 
+  spawnRise(){
+    this.realPos.y -= (tiledHeight*tileSide - playerSpawns[currentScreen].y*tileSide)/20;
+    this.pos.y = round(this.realPos.y);
+  }
+
   checkMovement(){
     this.toMove = [];
 
@@ -141,7 +183,7 @@ class Player{
     for (let action in this.specialKeys){
       for (let keyBind of this.specialKeys[action]){
         if (key === keyBind){
-          if (action === 'dash' && this.dashes > 0 && frameCount - this.dashTime >= this.hangtime-1){this.triggerDash = true;}
+          if (action === 'dash' && this.dashes > 0 && countedFrames - this.dashTime >= this.hangtime-1){this.triggerDash = true;}
           else if (action === 'jump' && this.state > 0){this.triggerJump = true;}
           break;
         }
@@ -155,7 +197,7 @@ class Player{
     print('dash');
     this.dashing = true;
     this.triggerDash = true;
-    this.dashTime = frameCount+1; // 
+    this.dashTime = countedFrames+1; // 
     this.dashes--;
     this.movespeed = this.regularMovespeed*4.8;
 
@@ -175,7 +217,7 @@ class Player{
 
     // If a dash was interrupted in the first half of the dash, the horizontal velocity converted is based off the initial horizontal velocity of the dash.
     // This is to make getting the maximum speed from a dash interruption easier/more consistent.
-    if (frameCount - this.dashTime < 6 && this.controlledVel.x !== 0){this.controlledVel.x = this.facing * (this.movespeed);}
+    if (countedFrames - this.dashTime < 6 && this.controlledVel.x !== 0){this.controlledVel.x = this.facing * (this.movespeed);}
 
     // This function handles the case of an upwards diagonal dash interruption by slightly decreasing the initial horizontal velocity.
     // It's basically like a horizontal dash interruption but weaker.
@@ -186,7 +228,7 @@ class Player{
     if (abs(this.controlledVel.x) > 0 && this.controlledVel.y > 0) {
       this.controlledVel.x *= 1.25; // Interrupting a diagonal dash grants you a small boost to your original horizontal speed.
       // This is the same check for if the dash was interrupted in the first half.
-      if (frameCount - this.dashTime < 6){this.controlledVel.y = this.facing * this.movespeed;}
+      if (countedFrames - this.dashTime < 6){this.controlledVel.y = this.facing * this.movespeed;}
 
       // 'facing' is used to check the direction which vertical speed will be converted to horizontal speed.
       this.naturalVel.x += this.facing * abs(this.controlledVel.y);
@@ -226,10 +268,11 @@ class Player{
       else{this.naturalVel.x = 0;}
 
       // if already falling or hangtime is out
-      if ((this.state === 0 && abs(this.naturalVel.y) > 0.00001) || (frameCount - this.dashTime >= this.dashDuration + this.hangtime && frameCount - this.airborneTime > this.hangtime)){
-        //print(frameCount - this.airborneTime);
+      if ((this.state === 0 && abs(this.naturalVel.y) > 0.00001) || (countedFrames - this.dashTime >= this.dashDuration + this.hangtime && countedFrames - this.airborneTime > this.hangtime)){
+        //print(countedFrames - this.airborneTime);
         if (this.naturalVel.y < 5){this.naturalVel.y += 0.27;}
         if (this.naturalVel.y > 5){this.naturalVel.y = 5;}
+      else if (this.state === 2){this.naturalVel.y = 0;}
       }
     }
     // Acceleration/decceleration applied if player is dashing:
@@ -240,13 +283,12 @@ class Player{
   }
 
   modifyPosition(){
-    if (this.state === 2){this.naturalVel.y = 0;}
     this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
     // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
-    if (this.realPos.y >= 150){this.state = 2; this.realPos.y = 150; this.dashes = this.regularDashes; this.airborneTime = frameCount;}
+    if (this.realPos.y >= playerSpawns[currentScreen].y*tileSide){this.state = 2; this.realPos.y = playerSpawns[currentScreen].y*tileSide; this.dashes = this.regularDashes; this.airborneTime = countedFrames; this.naturalVel.y = 0;}
     else{this.state = 0;}
 
     this.oldPos.x = this.pos.x;
@@ -290,7 +332,7 @@ class Player{
     // Movement decceleration and gravitational acceleration are applied as needed.
     this.modifyVelocity()
 
-    if (this.dashing && frameCount - this.dashTime === this.dashDuration){this.dashing = false; this.movespeed = this.regularMovespeed; this.controlledVel.x = 0; this.controlledVel.y = 0;}
+    if (this.dashing && countedFrames - this.dashTime === this.dashDuration){this.dashing = false; this.movespeed = this.regularMovespeed; this.controlledVel.x = 0; this.controlledVel.y = 0;}
     this.triggerDash = false;
 
     this.modifyPosition();
