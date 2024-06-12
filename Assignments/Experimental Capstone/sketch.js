@@ -22,7 +22,6 @@ function setup(){
   if (windowWidth/(tiledWidth*tileSide) < windowHeight/(tiledHeight*tileSide)){scaling = windowWidth/(tiledWidth*tileSide);}
   else{scaling = windowHeight/(tiledHeight*tileSide);}
   scaling -= scaling % (1/8);
-  scaling *= 3
 
   createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
   //frameRate(2)
@@ -334,7 +333,7 @@ class Player{
     noStroke();
     rect(this.oldPos.x*scaling, this.oldPos.y*scaling, this.sX*scaling, this.sY*scaling);
     stroke(255, 50, 50);
-    strokeWeight(3);
+    strokeWeight(1);
 
     if ((this.oldPos.x - this.pos.x) * (this.oldPos.y - this.pos.y) > 0){rayOrigin = 1;}
     let offSetX = rayOrigin * this.sX * scaling;
@@ -342,6 +341,10 @@ class Player{
     line(this.pos.x*scaling + offSetX, this.pos.y*scaling, this.oldPos.x*scaling + offSetX, this.oldPos.y*scaling);
     line((this.pos.x+this.sX)*scaling - offSetX, (this.pos.y+this.sY)*scaling, (this.oldPos.x+this.sX)*scaling - offSetX, (this.oldPos.y+this.sY)*scaling);
     line((this.pos.x + this.sX/2)*scaling, (this.pos.y+ this.sY/2)*scaling, (this.oldPos.x + this.sX/2)*scaling, (this.oldPos.y + this.sY/2)*scaling);
+
+    line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, this.oldReal.x*scaling + offSetX, this.oldReal.y*scaling);
+    line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, (this.oldReal.x+this.sX)*scaling - offSetX, (this.oldReal.y+this.sY)*scaling);
+    line((this.realPos.x + this.sX/2)*scaling, (this.realPos.y+ this.sY/2)*scaling, (this.oldReal.x + this.sX/2)*scaling, (this.oldReal.y + this.sY/2)*scaling);
     
     this.currentCollision(this.pos.y-this.oldPos.y, this.pos.x-this.oldPos.x);
   }
