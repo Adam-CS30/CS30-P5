@@ -47,7 +47,6 @@ function draw(){
 
 // All calculations for the player, terrain, camera, and other entities are done here.
 function updateAll(){
-  print(1)
   player.update();
   for (let terrain of screens[currentScreen]){terrain.update();}
 }
@@ -56,44 +55,53 @@ function updateAll(){
 function displayAll(){
   push();
   scale(scaling);
-  //for (let terrain of screens[currentScreen]){terrain.display();}
+  for (let terrain of screens[currentScreen]){terrain.display();}
   player.display(); // Player displayed last so they are the frontmost object.
   pop();
 }
 
 function loadScreens(data){
   let screen = [];
+  let tiledScreen = [];
 
   for (let y = 0; y < tiledHeight; y++){
-    screen.push([])
+    tiledScreen.push([])
     for (let x = 0; x < tiledWidth; x++){
-      screen[y].push(0)
+      tiledScreen[y].push(0)
     }
   }
   
-  for (let item of data){
-    let type = item.substring(0,item.indexOf(':')); // the type of tile.
-    item = item.replace(/\s/g, "").substring(item.indexOf('(')); // rest of the line excluding spaces.
+  for (let line of data){
+    let type = line.substring(0,line.indexOf(':')); // the type of tile.
+    line = line.replaceAll(" ", "")
+    line.substring(line.indexOf('(')); // rest of the line excluding spaces.
 
     switch (type){
       case 'spawn':
-        playerSpawns.push(createVector(int(item.substring(1+item.indexOf('('), item.indexOf(','))), int(item.substring(1+item.indexOf(','), item.indexOf(')')))));
+        playerSpawns.push(createVector(int(line.substring(1+line.indexOf('('), line.indexOf(','))), int(line.substring(1+line.indexOf(','), line.indexOf(')')))));
+        print(playerSpawns)
         break;
       case 'neutral':
         type = 1;
         // for loop to go through entire line
         let i = 0;
-        while (item.indexOf(')', i+1) !== -1){
-          let currentItem = item.substring(item.indexOf('(')+1, item.indexOf(')'));
+        while (line.indexOf(')', i+1) !== -1){
+          let currentItem = line.substring(line.indexOf('(', i+1)+1, line.indexOf(')', i+1));
+          
           let x = int(currentItem.substring(0, currentItem.indexOf(',')));
           let y = int(currentItem.substring(1+currentItem.indexOf(','), currentItem.indexOf(',',currentItem.indexOf(',')+1)));
           let sX = int(currentItem.substring(1+currentItem.indexOf(',',currentItem.indexOf(',')+1), currentItem.indexOf(',',currentItem.indexOf(',',currentItem.indexOf(',')+1)+1)));
-          let sY = int(currentItem.substring(1+currentItem.indexOf(',',currentItem.indexOf(',',currentItem.indexOf(',')+1)+1)))
+          let sY = int(currentItem.substring(1+currentItem.indexOf(',',currentItem.indexOf(',',currentItem.indexOf(',')+1)+1)));
 
+          screen.push(new NeutralTerrain(x, y, sX, sY));
 
-          screen.push(new NeutralTerrain(int(item.substring(1+item.indexOf('('), item.indexOf(','))), ))
+          for (let h = sY; h > 0; h--){
+            for (let w = sX; w > 0; w--){
+              tiledScreen[y+h-1][x+w-1] = type;
+            }
+          }
 
-          i = item.indexOf(')', i+1);
+          i = line.indexOf(')', i+1);
         }
         break;
       case 'spikes':
@@ -105,9 +113,9 @@ function loadScreens(data){
   }
   
   screens.push(screen);
-  //print(screen);
-
-  //screens.push(screen);
+  tiledScreens.push(tiledScreen);
+  print(screen);
+  print(tiledScreen);
 }
 
 function pauseScreen(){
@@ -138,8 +146,8 @@ class Player{
     this.realPos = createVector(x, y); // Current position of character.
     this.oldPos = createVector(x, y); // Position of character last frame.
     this.pos = createVector(x, y); // Rounded position of character.
-    this.sX = 5;
-    this.sY = 5;
+    this.sX = 9;
+    this.sY = 7;
 
     // Two velocity vectors are implemented. Added together, they make up the total velocity of the player. They both have seperate ways in which they are accelerated/deccelerated.
     this.controlledVel = createVector(0, 0); // This velocity is only affected by dashing and running. This velocity is has a sharp rate of decceleration.
@@ -303,7 +311,7 @@ class Player{
     
     // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
-    if (this.realPos.y >= playerSpawns[currentScreen].y*tileSide){this.state = 2; this.realPos.y = playerSpawns[currentScreen].y*tileSide; this.dashes = this.regularDashes; this.airborneTime = countedFrames; this.naturalVel.y = 0;}
+    if (this.realPos.y + this.sY >= playerSpawns[currentScreen].y*tileSide){this.state = 2; print(this.state); this.realPos.y = playerSpawns[currentScreen].y*tileSide-this.sY; this.dashes = this.regularDashes; this.airborneTime = countedFrames; this.naturalVel.y = 0;}
     else{this.state = 0;}
 
     this.oldPos.x = this.pos.x;
