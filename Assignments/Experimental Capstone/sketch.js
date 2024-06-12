@@ -22,6 +22,7 @@ function setup(){
   if (windowWidth/(tiledWidth*tileSide) < windowHeight/(tiledHeight*tileSide)){scaling = windowWidth/(tiledWidth*tileSide);}
   else{scaling = windowHeight/(tiledHeight*tileSide);}
   scaling -= scaling % (1/8);
+  scaling *= 3
 
   createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
   //frameRate(2)
@@ -144,6 +145,7 @@ class Player{
   // 8 x 12 hitbox
   constructor(x, y){
     this.realPos = createVector(x, y); // Current position of character.
+    this.oldReal = createVector(x,y)
     this.oldPos = createVector(x, y); // Position of character last frame.
     this.pos = createVector(x, y); // Rounded position of character.
     this.sX = 9;
@@ -154,7 +156,7 @@ class Player{
     this.naturalVel = createVector(0, 0); // This velocity is only affected by jumping and gravity. This velocity only has a value when the player is midair and has a lower rate of decceleration.
 
     this.keybinds = {'left':[LEFT_ARROW, 65], 'right':[RIGHT_ARROW, 68], 'up':[UP_ARROW, 87], 'down':[DOWN_ARROW, 83]}; // Keys the player can press for directional movement.
-    this.specialKeys = {'dash':['j', 'e'], 'jump':['k', ' ']}; // Keys that the player can press for special movement.
+    this.specialKeys = {'dash':['k', 'e'], 'jump':['j', ' ']}; // Keys that the player can press for special movement.
     this.toMove = []; // A list that containins the directions that the player wishes to move each frame.
 
     this.triggerDash = false; // Is true when a dash is triggered.
@@ -306,12 +308,15 @@ class Player{
   }
 
   modifyPosition(){
+    this.oldReal.x = this.realPos.x;
+    this.oldReal.y = this.realPos.y;
+
     this.realPos.add(this.controlledVel);
     this.realPos.add(this.naturalVel);
     
     // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
-    if (this.realPos.y + this.sY >= playerSpawns[currentScreen].y*tileSide){this.state = 2; print(this.state); this.realPos.y = playerSpawns[currentScreen].y*tileSide-this.sY; this.dashes = this.regularDashes; this.airborneTime = countedFrames; this.naturalVel.y = 0;}
+    if (this.realPos.y + this.sY >= playerSpawns[currentScreen].y*tileSide){this.state = 2; this.realPos.y = playerSpawns[currentScreen].y*tileSide-this.sY; this.dashes = this.regularDashes; this.airborneTime = countedFrames; this.naturalVel.y = 0;}
     else{this.state = 0;}
 
     this.oldPos.x = this.pos.x;
@@ -343,6 +348,16 @@ class Player{
 
   currentCollision(changeY, changeX){
     // trace each line while checking each pixel on it or smthn
+    let slope = changeY/changeX;
+    if (slope===Infinity){slope = -999}
+    else if(slope===-Infinity){slope = 999}
+    let distance = dist(this.pos.x, this.pos.y, this.oldPos.x, this.oldPos.y);
+
+    //this.slopeGraph()
+  }
+
+  slopeGraph(x, y, s){
+
   }
 
   update(){
@@ -369,6 +384,7 @@ class Player{
     rect(this.pos.x, this.pos.y, this.sX, this.sY); // real hitbox (fake would be ~10x17)
   }
 }
+
 
 class Terrain{
   constructor(x, y, sizeX, sizeY){

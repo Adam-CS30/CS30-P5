@@ -1,16 +1,8 @@
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  frameRate(1);
-}
-
-let g = 220
-
-function draw() {
-  g = 220
-  background(g);
-  print(frameCount);
-}
-
-function keyPressed(){
-  g=0;
+  createCanvas(300, 300);
+  push()
+  background(220);
+  strokeWeight(1);
+  point(150,150);
+  pop()
 }
