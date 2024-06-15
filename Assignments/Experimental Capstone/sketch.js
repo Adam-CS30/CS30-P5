@@ -3,13 +3,15 @@
 // May 2, 2024
 // Experimental capstone idea
 
-let player, screens = [], tiledScreens = [], playerSpawns = [], currentScreen = 0, spawnFrame = 0;
+let player, screens = [], tiledScreens = [], playerSpawns = [], clouds = [], currentScreen = 0, spawnFrame = 0, rock, spikes;
 let scaling; // How much the entire canvas is scaled.
 let paused = false, controlpause = true; // Whether the game is paused and whether controlling the player is paused respectively.
 let countedFrames = 0; // Like frameCount but only counts unpaused frames.
 const tileSide = 8, tiledWidth = 40, tiledHeight = 22;
 
 function preload(){
+  rock = loadImage('images/rock.png');
+
   const basePath = "screens/screen"
   for (let i = 0; i <= 0; i++){
     let path = basePath + i.toString() + '.txt';
@@ -26,10 +28,11 @@ function setup(){
   createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
   //frameRate(2)
   spawnPlayer();
+  for (let i = 0; i < 20; i++){clouds.push(new Cloud())}
 }
 
 function draw(){
-  background(20, 40, 60);
+  background(10, 20, 40);
   if (frameCount > 30){
     if (!paused){
       countedFrames++;
@@ -55,7 +58,14 @@ function updateAll(){
 function displayAll(){
   push();
   scale(scaling);
-  for (let terrain of screens[currentScreen]){terrain.display();}
+  
+  for (let cloud of clouds){cloud.action()}
+
+  for (let y in tiledScreens[currentScreen]){
+    for (let x in tiledScreens[currentScreen][y]){
+      if (tiledScreens[currentScreen][y][x] === 1){image(rock, x*tileSide, y*tileSide, 8, 8);}
+    }
+  }
   player.display(); // Player displayed last so they are the frontmost object.
   pop();
 }
@@ -236,6 +246,8 @@ class Player{
 
   jump(){
     print('jump');
+    if (this.state===2){this.realPos.y = this.pos.y;}
+    else {this.realPos.x = this.pos.x;}
     this.state = 0;
     this.naturalVel.y -= this.regularMovespeed*4;
 
@@ -324,7 +336,7 @@ class Player{
     this.pos.x = round(this.realPos.x);
     this.pos.y = round(this.realPos.y);
 
-    this.checkCollision();
+    if (this.pos.x !== this.oldPos.x || this.pos.y !== this.oldPos.y){this.checkCollision();}
   }
 
   checkCollision(){
@@ -338,25 +350,26 @@ class Player{
     if ((this.oldPos.x - this.pos.x) * (this.oldPos.y - this.pos.y) > 0){rayOrigin = 1;}
     let offSetX = rayOrigin * this.sX * scaling;
 
-    line(this.pos.x*scaling + offSetX, this.pos.y*scaling, this.oldPos.x*scaling + offSetX, this.oldPos.y*scaling);
-    line((this.pos.x+this.sX)*scaling - offSetX, (this.pos.y+this.sY)*scaling, (this.oldPos.x+this.sX)*scaling - offSetX, (this.oldPos.y+this.sY)*scaling);
-    line((this.pos.x + this.sX/2)*scaling, (this.pos.y+ this.sY/2)*scaling, (this.oldPos.x + this.sX/2)*scaling, (this.oldPos.y + this.sY/2)*scaling);
-
     line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, this.oldReal.x*scaling + offSetX, this.oldReal.y*scaling);
     line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, (this.oldReal.x+this.sX)*scaling - offSetX, (this.oldReal.y+this.sY)*scaling);
     line((this.realPos.x + this.sX/2)*scaling, (this.realPos.y+ this.sY/2)*scaling, (this.oldReal.x + this.sX/2)*scaling, (this.oldReal.y + this.sY/2)*scaling);
     
-    this.currentCollision(this.pos.y-this.oldPos.y, this.pos.x-this.oldPos.x);
+    this.currentCollision(this.realPos.y-this.oldReal.y, this.realPos.x-this.oldReal.x);
   }
 
   currentCollision(changeY, changeX){
     // trace each line while checking each pixel on it or smthn
     let slope = changeY/changeX;
-    if (slope===Infinity){slope = -999}
-    else if(slope===-Infinity){slope = 999}
+    let steps;
+    if (abs(slope) <= 1){let i = this.realPos.x; let d = this.realPos.y; steps = this.pos.x-this.oldPos.x;}
+    else {let i = this.realPos.y; let d = this.realPos.x; steps = this.pos.y-this.oldPos.y;}
+
     let distance = dist(this.pos.x, this.pos.y, this.oldPos.x, this.oldPos.y);
 
     //this.slopeGraph()
+    // trace the in between rounded positions of the character using one line then check for collision at each position
+    // use x-dist between initial and final if abs(slope) of line <= 1 else use y-dist for finding each position
+    // 
   }
 
   slopeGraph(x, y, s){
@@ -407,8 +420,8 @@ class Terrain{
 
   display(){
     noStroke();
-    fill(200, 200, 100);
-    rect(this.x, this.y, this.sX, this.sY);
+    //fill(200, 200, 100);
+    image(rock,this.x, this.y);
   }
 }
 
@@ -427,4 +440,37 @@ class NeutralTerrain extends Terrain{
 // Collision Function:
 function collision(){
   // raycast from old pos (corners) to new pos (corners)
+}
+
+class Cloud{
+  constructor(){
+    this.xSpeed = int(random(2,8));
+    this.sX = int(random(20,60));
+    this.sY = int(random(6,14));
+    this.x = int(random(320));
+    this.y = int(random(180-this.sY))
+  }
+
+  move(){
+    // Modify the position of the vehicle based on its speed and direction.
+    this.x += this.xSpeed;
+    
+    // If a cloud passes the right edge of the screen, it will reposition behind the left edge of the screen and randomize it's y-pos.
+    if (this.x > 320){
+      this.x = -this.sX;
+      this.y = int(random(180-this.sY));
+      this.xSpeed = int(random(2,8));
+    }
+  }
+
+  action(){ 
+    this.move()
+    this.display()
+  }
+
+  display(){
+    noStroke();
+    fill(20,40,80);
+    rect(this.x, this.y, this.sX, this.sY);
+  }
 }
