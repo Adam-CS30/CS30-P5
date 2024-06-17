@@ -21,25 +21,26 @@ function preload(){
 }
 
 function setup(){
+  // The scaling is based on how big of a canvas with a specific aspect ratio can wholly fit in the window.
   if (windowWidth/(tiledWidth*tileSide) < windowHeight/(tiledHeight*tileSide)){scaling = windowWidth/(tiledWidth*tileSide);}
   else{scaling = windowHeight/(tiledHeight*tileSide);}
-  scaling -= scaling % (1/8);
+  scaling -= scaling % (1/8); // Dispayed tiles don't line up properly without this.
 
   createCanvas(tiledWidth*tileSide*scaling, tiledHeight*tileSide*scaling); //(320x180 real screen)
   //frameRate(2)
-  spawnPlayer();
-  for (let i = 0; i < 20; i++){clouds.push(new Cloud())}
+  spawnPlayer(); // A player object is created.
+  for (let i = 0; i < 20; i++){clouds.push(new Cloud());} // 20 clouds are created at the beginning.
 }
 
 function draw(){
-  background(10, 20, 40);
+  background(10, 15, 30);
   if (frameCount > 30){
     if (!paused){
       countedFrames++;
       if(!controlpause){player.update();}
       else{
         player.spawnRise();
-        if (countedFrames - spawnFrame === 20){controlpause = false; player.realPos.y = playerSpawns[currentScreen].y*tileSide;}
+        if (countedFrames - spawnFrame >= 20){controlpause = false; player.realPos.y = playerSpawns[currentScreen].y*tileSide - player.sY;}
       }
     }
 
@@ -144,6 +145,7 @@ function keyPressed(){ //runs at the end of the frame in the time between this f
     print('pause triggered');
     paused = !paused; // Flips the pause state.
     if (paused){controlpause = true;}
+    else if (countedFrames >= 20){controlpause = false;}
     background(220)
   }
   // If it's not a pause/unpause then it checks if a movement ability was triggered.
@@ -186,7 +188,7 @@ class Player{
   }
 
   spawnRise(){
-    this.realPos.y -= (tiledHeight*tileSide - playerSpawns[currentScreen].y*tileSide)/20;
+    this.realPos.y -= (tiledHeight*tileSide - playerSpawns[currentScreen].y*tileSide + this.sY)/20;
     this.pos.y = round(this.realPos.y);
   }
 
@@ -249,7 +251,7 @@ class Player{
     if (this.state===2){this.realPos.y = this.pos.y;}
     else {this.realPos.x = this.pos.x;}
     this.state = 0;
-    this.naturalVel.y -= this.regularMovespeed*4;
+    this.naturalVel.y = -this.regularMovespeed*4;
 
     // If a dash was interrupted in the first half of the dash, the horizontal velocity converted is based off the initial horizontal velocity of the dash.
     // This is to make getting the maximum speed from a dash interruption easier/more consistent.
@@ -304,12 +306,12 @@ class Player{
       else{this.naturalVel.x = 0;}
 
       // if already falling or hangtime is out
-      if ((this.state === 0 && abs(this.naturalVel.y) > 0.00001) || (countedFrames - this.dashTime >= this.dashDuration + this.hangtime && countedFrames - this.airborneTime > this.hangtime)){
+
         //print(countedFrames - this.airborneTime);
         if (this.naturalVel.y < 5){this.naturalVel.y += 0.27;}
         if (this.naturalVel.y > 5){this.naturalVel.y = 5;}
-      else if (this.state === 2){this.naturalVel.y = 0;}
-      }
+
+      
     }
     // Acceleration/decceleration applied if player is dashing:
     else{
@@ -327,8 +329,6 @@ class Player{
     
     // Check collision here
     // Grounded state is checked at the end of the frame. airborneTime is set on the frame at which the player is no longer grounded.
-    if (this.realPos.y + this.sY >= playerSpawns[currentScreen].y*tileSide){this.state = 2; this.realPos.y = playerSpawns[currentScreen].y*tileSide-this.sY; this.dashes = this.regularDashes; this.airborneTime = countedFrames; this.naturalVel.y = 0;}
-    else{this.state = 0;}
 
     this.oldPos.x = this.pos.x;
     this.oldPos.y = this.pos.y;
@@ -336,44 +336,96 @@ class Player{
     this.pos.x = round(this.realPos.x);
     this.pos.y = round(this.realPos.y);
 
-    if (this.pos.x !== this.oldPos.x || this.pos.y !== this.oldPos.y){this.checkCollision();}
+    // If the player moved any number of pixels (based on rounded pos) this frame, then the game checks for collisions.
+    if (this.pos.x !== this.oldPos.x || this.pos.y !== this.oldPos.y){
+      this.checkCollision(this.naturalVel.y+this.controlledVel.y, this.naturalVel.x+this.controlledVel.x, this.pos.y-this.oldPos.y, this.pos.x-this.oldPos.x);
+
+      if (this.checkGrounded()) {this.state = 2; this.dashes = this.regularDashes; this.airborneTime = countedFrames;} // Check if the player is on the ground by creating a hitbox under the player.
+      else {this.state = 0;}
+      //print('Final:', this.realPos.x, this.realPos.y, this.pos.x, this.pos.y);
+    }
   }
 
-  checkCollision(){
-    let rayOrigin = 0;
-    fill(255);
-    noStroke();
-    rect(this.oldPos.x*scaling, this.oldPos.y*scaling, this.sX*scaling, this.sY*scaling);
-    stroke(255, 50, 50);
-    strokeWeight(1);
-
-    if ((this.oldPos.x - this.pos.x) * (this.oldPos.y - this.pos.y) > 0){rayOrigin = 1;}
-    let offSetX = rayOrigin * this.sX * scaling;
-
-    line(this.realPos.x*scaling + offSetX, this.realPos.y*scaling, this.oldReal.x*scaling + offSetX, this.oldReal.y*scaling);
-    line((this.realPos.x+this.sX)*scaling - offSetX, (this.realPos.y+this.sY)*scaling, (this.oldReal.x+this.sX)*scaling - offSetX, (this.oldReal.y+this.sY)*scaling);
-    line((this.realPos.x + this.sX/2)*scaling, (this.realPos.y+ this.sY/2)*scaling, (this.oldReal.x + this.sX/2)*scaling, (this.oldReal.y + this.sY/2)*scaling);
+  // This function is the first step in checking for collisions. The player is able to move multiple pixels in a single frame, which causes a chance for the player to phase through an obstacle if they are fast enough.
+  // The function accounts for this by basically tracing the path or "line" that the player would have had to go through in order to get from point A (initial pos) to point B (final pos).
+  // With each movement along the "line", the game checks for a collision.
+  checkCollision(changeRY, changeRX, changeY, changeX){
+    print("New Frame:")
     
-    this.currentCollision(this.realPos.y-this.oldReal.y, this.realPos.x-this.oldReal.x);
-  }
-
-  currentCollision(changeY, changeX){
-    // trace each line while checking each pixel on it or smthn
-    let slope = changeY/changeX;
+    // Steps holds the longest number of pixels moved either vertically or horizontally.
     let steps;
-    if (abs(slope) <= 1){let i = this.realPos.x; let d = this.realPos.y; steps = this.pos.x-this.oldPos.x;}
-    else {let i = this.realPos.y; let d = this.realPos.x; steps = this.pos.y-this.oldPos.y;}
+    if (abs(changeX) >= abs(changeY)){steps = abs(changeX);}
+    else {steps = abs(changeY);}
 
-    let distance = dist(this.pos.x, this.pos.y, this.oldPos.x, this.oldPos.y);
+    let stepVel = createVector(changeRX/steps, changeRY/steps); // This would be the velocity of the player if they moved pixel by pixel along the "line". 
+    let tempPos = createVector(this.oldPos.x, this.oldPos.y); // The rounded temporary position of player. It represents the pixel on the "line" where the player is.
+    let tempReal = createVector(this.oldReal.x, this.oldReal.y); // The real temporary position of player. It represents where on the "line" the player really is.
 
-    //this.slopeGraph()
-    // trace the in between rounded positions of the character using one line then check for collision at each position
-    // use x-dist between initial and final if abs(slope) of line <= 1 else use y-dist for finding each position
-    // 
+    // For each step the player advances one pixel in any direction at most.
+    for (let i = 0; i < steps; i++){
+      tempReal.add(stepVel);
+      let prevPos = createVector(tempPos.x, tempPos.y); // The current position is saved as the previous position just before it is updated.
+
+      if (i + 1 === steps){tempPos = createVector(this.pos.x, this.pos.y);} // If it's the last check, then tempPos is just set to the final position.
+      else {tempPos = createVector(round(tempReal.x), round(tempReal.y));}
+      //print('Temp:', tempPos.x, tempPos.y);
+
+      if (this.colliding(tempPos.x, tempPos.y, prevPos, stepVel)){ // Collision is checked using the player's current poisiton on the "line".
+        if (!this.colliding(tempPos.x, prevPos.y, prevPos, stepVel)){
+          this.pos.y = prevPos.y; this.realPos.y = prevPos.y; tempPos.y = prevPos.y; tempReal.y = prevPos.y;
+          this.naturalVel.y = 0; stepVel.y = 0;
+          print('y')
+        }
+        else if (!this.colliding(prevPos.x, tempPos.y, prevPos, stepVel)){
+          this.pos.x = prevPos.x; this.realPos.x = prevPos.x; tempPos.x = prevPos.x; tempReal.x = prevPos.x;
+          this.naturalVel.x = 0; stepVel.x = 0;
+          print('x')
+        }
+        else {this.pos = createVector(prevPos.x, prevPos.y); this.realPos = createVector(prevPos.x, prevPos.y); this.naturalVel = createVector(0, 0); print('both'); break;} // The player doesn't move any further at all.
+      }
+    }
   }
 
-  slopeGraph(x, y, s){
+  // This function checks if the player is currently colliding with terrain.
+  colliding(posX, posY){
+    // Number of pixels that the player is away from being in the same top left corner position of the tile that the player's top left corner is in.
+    let remainderX = posX % tileSide;
+    let remainderY = posY % tileSide;
 
+    // Position of the tile that the player's top left corner is in.
+    let tileX = (posX - remainderX)/8;
+    let tileY = (posY - remainderY)/8;
+
+    let intersectX = 1; // Number of tiles the player is intersecting when following the x-axis starting from the top left corner of the player.
+    let intersectY = 1; // Number of tiles the player is intersecting when following the y-axis starting from the top left corner of the player.
+    if (remainderX + this.sX > tileSide){intersectX++;}
+    if (remainderY + this.sY > tileSide){intersectY++;}
+
+    let intersectingTiles = [];
+    let colliding = false;
+
+    // Check each tile the player is intersecting to see if any of them have collidable terrain in them.
+    for (let y = tileY; y < tileY + intersectY; y++){
+      for (let x = tileX; x < tileX + intersectX; x++){
+        if (tiledScreens[currentScreen][y][x] === 0){intersectingTiles.push(0);}
+        else if (tiledScreens[currentScreen][y][x] === 1){colliding = true; intersectingTiles.push(1);} // The player is colliding with a solid tile.
+      }
+    }
+
+    return colliding;
+  }
+
+  checkGrounded(){
+    let tileX = (this.pos.x - this.pos.x % tileSide)/8;
+    let tileY = (this.pos.y + this.sY)/8;
+
+    if (tileY % 1 !== 0){return false;}
+
+    let intersectX = 1;
+    if (this.pos.x % tileSide + this.sX > tileSide){intersectX++;}
+
+    for (let x = tileX; x < tileX + intersectX; x++) {if (tiledScreens[currentScreen][tileY][x] === 1){ return true;}}
+    return false;
   }
 
   update(){
@@ -395,8 +447,9 @@ class Player{
 
   display(){
     noStroke();
-    if (this.dashing){fill(50,180,255);}
-    else{fill(100,200,100);}
+    if (this.dashing){fill(150,0,250);}
+    else if (this.dashes > 0){fill(240,50,0)}
+    else{fill(50,150,255);}
     rect(this.pos.x, this.pos.y, this.sX, this.sY); // real hitbox (fake would be ~10x17)
   }
 }
@@ -442,32 +495,36 @@ function collision(){
   // raycast from old pos (corners) to new pos (corners)
 }
 
+// This class is very similar to the Vehicle class from the Cars Cars Cars assignment.
+// Each cloud has a random size and continually moves to the right at a random speed.
 class Cloud{
   constructor(){
-    this.xSpeed = int(random(2,8));
-    this.sX = int(random(20,60));
-    this.sY = int(random(6,14));
+    this.xSpeed = int(random(2,7));
+    this.sX = int(random(25,60));
+    this.sY = int(random(7,14));
     this.x = int(random(320));
     this.y = int(random(180-this.sY))
   }
 
   move(){
-    // Modify the position of the vehicle based on its speed and direction.
+    // The cloud moves a distance to the right based on it's speed.
     this.x += this.xSpeed;
     
-    // If a cloud passes the right edge of the screen, it will reposition behind the left edge of the screen and randomize it's y-pos.
+    // If a cloud passes the right edge of the screen, it will reposition behind the left edge of the screen, randomize it's y-pos, and randomize it's speed.
     if (this.x > 320){
       this.x = -this.sX;
       this.y = int(random(180-this.sY));
-      this.xSpeed = int(random(2,8));
+      this.xSpeed = int(random(2,7));
     }
   }
 
+  // Moves then displays the cloud.
   action(){ 
     this.move()
     this.display()
   }
 
+  // Displays the cloud as a blue rectangle using the cloud's randomized size.
   display(){
     noStroke();
     fill(20,40,80);
