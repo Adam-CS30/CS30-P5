@@ -1,6 +1,6 @@
 // The 1000M Climb
 // Adam Abouelela
-// June 23, 2024
+// June 24, 2024
 
 /*
 This game was inspired by Celeste (PICO-8).
